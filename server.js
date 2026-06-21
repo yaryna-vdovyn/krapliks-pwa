@@ -84,6 +84,11 @@ cron.schedule('* * * * *', () => {
     }
 });
 
+// 4. Маршрут для Keep Alive сервісів (UptimeRobot)
+app.get('/health', (req, res) => {
+    res.status(200).send('Я бадьорий!');
+});
+
 app.listen(PORT, () => {
     console.log(`Сервер запущено на http://localhost:${PORT}`);
 });
