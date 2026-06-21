@@ -257,7 +257,6 @@ function updateStaticTranslations() {
     const weekdaysDiv = document.getElementById('calendar-weekdays');
     if (weekdaysDiv) weekdaysDiv.innerHTML = t('weekdays').map(w => `<span>${w}</span>`).join('');
 
-    // Оновлення інлайн текстів повзунків
     ['med-pause', 'edit-med-pause', 'med-reminder', 'edit-med-reminder', 'notif-sound'].forEach(prefix => {
         const toggleText = document.getElementById(`${prefix}-text`);
         const toggleInput = document.getElementById(`${prefix}-toggle`);
@@ -280,7 +279,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${y}-${m}-${d}`;
     }
     
-    // Ініціалізація мови
     const langToggle = document.getElementById('lang-toggle');
     if (langToggle) {
         langToggle.value = currentLang;
@@ -292,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCalendar();
             updateTodayStats();
             renderNotifications();
-            syncPushesWithServer(); // Оновлюємо пуші на новій мові
+            syncPushesWithServer();
         });
     }
     updateStaticTranslations();
@@ -360,11 +358,10 @@ document.addEventListener('DOMContentLoaded', () => {
         notifSoundToggle.addEventListener('change', (e) => {
             localStorage.setItem('appSoundEnabled', e.target.checked);
             if(notifSoundText) notifSoundText.innerText = e.target.checked ? t('enabled') : t('disabled');
-            syncPushesWithServer(); // Оновлюємо налаштування звуку на сервері
+            syncPushesWithServer();
         });
     }
 
-    // Показує локальні тости, коли додаток відкритий
     function showPushToast(title, bodyText) {
         const toast = document.getElementById('push-toast');
         const tTitle = document.getElementById('push-toast-title');
@@ -377,15 +374,15 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => toast.classList.remove('show'), 5000);
     }
 
-    // Використовується локальним setInterval для наповнення історії вкладки "Сповіщення", коли додаток відкритий
     function triggerPushNotification(key, type, titleKey, text) {
         const notifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
         if (!notifs.find(n => n.key === key)) {
-            notifs.unshift({ id: Date.now(), key, type, titleKey, text, isRead: false, timestamp: Date.now() });
+            const newLocalNotif = { id: Date.now(), key, type, titleKey, text, isRead: false, timestamp: Date.now() };
+            notifs.unshift(newLocalNotif);
             localStorage.setItem('appNotifications', JSON.stringify(notifs));
             updateBadge();
             showPushToast(t(titleKey), text);
-            // Звук тут не програємо, бо його відтворить Service Worker операційної системи
+            syncPushesWithServer(); // Синхронізуємо нову подію з сервером
         }
     }
 
@@ -396,9 +393,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (badge) badge.style.display = hasUnread ? 'block' : 'none';
     }
 
-    function renderNotifications() {
+    // ОНОВЛЕНА СИНХРОНІЗАЦІЯ ІСТОРІЇ З БЕКЕНДОМ
+    async function renderNotifications() {
         const list = document.getElementById('notifications-list');
         if (!list) return;
+
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    const res = await fetch('/api/notifications/get', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ subscription: sub })
+                    });
+                    if (res.ok) {
+                        const serverNotifs = await res.json();
+                        const localNotifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
+                        
+                        const historyMap = new Map();
+                        localNotifs.forEach(n => historyMap.set(n.id, n));
+                        serverNotifs.forEach(n => {
+                            if (!historyMap.has(n.id)) {
+                                historyMap.set(n.id, n);
+                            } else {
+                                if (n.isRead) historyMap.get(n.id).isRead = true;
+                            }
+                        });
+                        
+                        const merged = Array.from(historyMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+                        localStorage.setItem('appNotifications', JSON.stringify(merged));
+                    }
+                }
+            } catch (e) {
+                console.error('Помилка підтягування серверної історії:', e);
+            }
+        }
+
         const notifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
         list.innerHTML = '';
 
@@ -417,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="notif-body">${notif.text}</div>
             `;
 
-            card.addEventListener('click', () => {
+            card.addEventListener('click', async () => {
                 card.classList.toggle('expanded');
                 if (!notif.isRead) {
                     notif.isRead = true;
@@ -429,6 +461,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('appNotifications', JSON.stringify(updatedNotifs));
                     }
                     updateBadge();
+
+                    try {
+                        const reg = await navigator.serviceWorker.ready;
+                        const sub = await reg.pushManager.getSubscription();
+                        if (sub) {
+                            await fetch('/api/notifications/mark-read', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ subscription: sub, id: notif.id })
+                            });
+                        }
+                    } catch(e){}
                 }
             });
             list.appendChild(card);
@@ -436,20 +480,43 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBadge();
     }
 
-    document.getElementById('btn-read-all')?.addEventListener('click', () => {
+    document.getElementById('btn-read-all')?.addEventListener('click', async () => {
         const notifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
         notifs.forEach(n => n.isRead = true);
         localStorage.setItem('appNotifications', JSON.stringify(notifs));
         renderNotifications();
+
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                await fetch('/api/notifications/read-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subscription: sub })
+                });
+            }
+        } catch(e){}
     });
 
-    document.getElementById('btn-modal-delete-all')?.addEventListener('click', () => {
+    document.getElementById('btn-modal-delete-all')?.addEventListener('click', async () => {
         localStorage.removeItem('appNotifications');
         renderNotifications();
         document.getElementById('modal-manage-notifs').style.display = 'none';
+
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                await fetch('/api/notifications/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subscription: sub })
+                });
+            }
+        } catch(e){}
     });
 
-    // Локальна перевірка для наповнення історії, якщо вкладка відкрита
     function checkScheduledNotifications() {
         const todayStr = getLocalYMD();
         const now = new Date();
@@ -1019,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateTodayStats(); renderMedications(); 
         if(document.getElementById('screen-calendar').classList.contains('active')) renderCalendar();
-        syncPushesWithServer(); // Оновлюємо розклад інтервальних ліків
+        syncPushesWithServer();
     }
 
     // --- КАЛЕНДАР ---
@@ -1307,7 +1374,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return outputArray;
     }
 
-    // Генерація черги майбутніх сповіщень
     function generatePushQueue() {
         const queue = [];
         const now = new Date();
@@ -1315,7 +1381,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const history = JSON.parse(localStorage.getItem('appDropHistory')) || [];
         const visits = JSON.parse(localStorage.getItem('appDoctorVisits')) || [];
 
-        // 1. Візити до лікаря (за 1 день о 12:00)
         visits.forEach(vDateStr => {
             const vDate = new Date(vDateStr);
             vDate.setDate(vDate.getDate() - 1);
@@ -1325,7 +1390,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 2. Терміни придатності (в останній день о 12:00)
         savedMeds.forEach(med => {
             const op = new Date(med.openedDate);
             op.setDate(op.getDate() + (parseInt(med.expDays) || 28) - 1);
@@ -1335,7 +1399,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 3. Розклади прийому
         savedMeds.forEach(med => {
             if (!med.scheduleType) return;
             if (med.reminderEnabled === false || med.reminderOffset === 'off') return;
@@ -1343,7 +1406,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const offsetMins = parseInt(med.reminderOffset) || 0;
 
             if (med.scheduleType === 'exact' && med.scheduleTimes && med.scheduleTimes.length > 0) {
-                // Плануємо на 3 дні вперед
                 for (let i = 0; i < 3; i++) {
                     const tDate = new Date(now);
                     tDate.setDate(tDate.getDate() + i);
@@ -1369,7 +1431,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 4. Пауза між прийомами
         const endTimeStr = localStorage.getItem('appTimerEndTime');
         if (endTimeStr) {
             const endTime = parseInt(endTimeStr, 10);
@@ -1381,7 +1442,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return queue;
     }
 
-    // Надсилання черги на сервер
+    // ОНОВЛЕНЕ НАДСИЛАННЯ ДАНИХ З ЛОКАЛЬНОЮ ІСТОРІЄЮ
     async function syncPushesWithServer() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         
@@ -1392,11 +1453,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const queue = generatePushQueue();
             const soundEnabled = localStorage.getItem('appSoundEnabled') !== 'false';
+            const localHistory = JSON.parse(localStorage.getItem('appNotifications')) || [];
             
             await fetch('/api/sync-pushes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscription: sub, queue, soundEnabled })
+                body: JSON.stringify({ subscription: sub, queue, soundEnabled, localHistory })
             });
         } catch (e) {
             console.error('Помилка синхронізації з сервером:', e);
@@ -1421,7 +1483,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.log('Успішно підписано на Web Push!');
                 
-                // Після першої підписки одразу відправляємо розклад
                 syncPushesWithServer();
 
             } catch (error) {

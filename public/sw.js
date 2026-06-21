@@ -6,8 +6,8 @@ self.addEventListener('push', function(event) {
         
         const options = {
             body: data.body,
-            icon: '/images/logoweb.png', // Ваш логотип
-            badge: '/images/logo.png', // Маленька монохромна іконка для Android
+            icon: '/images/logoweb.png', // Ваш основний кольоровий логотип
+            badge: '/images/badge-icon.png', // ОНОВЛЕНО: Спеціальна монохромна іконка для Android
             vibrate: [200, 100, 200],
             // Якщо playSound === true, silent стає false (грає системний звук)
             silent: data.playSound === false, 
@@ -29,7 +29,7 @@ self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     event.waitUntil(
         clients.matchAll({ type: 'window' }).then(windowClients => {
-            // Перевіряємо, чи вікно вже відкрито
+            // Перевіряємо, чи вікно додатка вже відкрито
             for (let i = 0; i < windowClients.length; i++) {
                 let client = windowClients[i];
                 if (client.url === '/' && 'focus' in client) {
