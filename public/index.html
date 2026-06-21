@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e382b">
+    <title data-i18n="app_title">Krapliks</title>
+    <link rel="icon" href="images/logoweb.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="push-toast" class="push-toast">
+        <div id="push-toast-title" class="push-toast-title"></div>
+        <div id="push-toast-body" class="push-toast-body"></div>
+    </div>
+
+    <div class="app-container">
+        
+        <section id="screen-home" class="screen active">
+            <header class="app-header">
+                <h1 data-i18n="app_title">Krapliks</h1>
+            </header>
+            
+            <main class="content">
+                <div id="doctor-reminder" class="doctor-reminder" style="display: none;"></div>
+
+                <div class="quick-add-section">
+                    <div class="eye-selector">
+                        <input type="radio" id="eye-left" name="eye" value="left">
+                        <label for="eye-left" data-i18n="eye_left">Ліве</label>
+
+                        <input type="radio" id="eye-both" name="eye" value="both" checked>
+                        <label for="eye-both" data-i18n="eye_both">Обидва</label>
+
+                        <input type="radio" id="eye-right" name="eye" value="right">
+                        <label for="eye-right" data-i18n="eye_right">Праве</label>
+                    </div>
+                    
+                    <button id="btn-drop" class="btn-main-action">
+                        <span class="btn-icon">+</span>
+                        <span class="btn-text" data-i18n="btn_drop">Закапати</span>
+                    </button>
+                    
+                    <div id="timer-display" class="timer-display" style="display: none;">
+                        <span data-i18n="timer_wait">⏳ Зачекайте</span> <span id="timer-time">10:00</span> <span data-i18n="timer_before_next">перед наступним</span>
+                    </div>
+
+                    <p id="last-action-text" class="last-action-text" data-i18n="today_no_drops">Сьогодні ще не капали</p>
+                    
+                    <div id="today-stats" class="today-stats-container"></div>
+                </div>
+
+                <div class="medications-list">
+                    <h2 data-i18n="my_meds">Мої препарати</h2>
+                    <div id="medications-container"></div>
+                </div>
+            </main>
+        </section>
+
+        <section id="screen-calendar" class="screen">
+            <header class="app-header">
+                <h1 data-i18n="calendar_title">Календар</h1>
+            </header>
+            <main class="content">
+                <div class="calendar-card">
+                    <div class="calendar-header">
+                        <button id="cal-prev-month" class="icon-btn">&lt;</button>
+                        <h2 id="calendar-month-year">Місяць Рік</h2>
+                        <button id="cal-next-month" class="icon-btn">&gt;</button>
+                    </div>
+                    <div class="calendar-legend">
+                        <div class="legend-item"><span class="dot dot-doctor"></span> <span data-i18n="visit_doctor">Візит до лікаря</span></div>
+                        <div class="legend-item"><span class="dot dot-expiry"></span> <span data-i18n="expiry_end">Закінчення терміну</span></div>
+                    </div>
+                    <div class="calendar-weekdays" id="calendar-weekdays"></div>
+                    <div id="calendar-grid" class="calendar-grid"></div>
+                </div>
+            </main>
+        </section>
+
+        <section id="screen-notifications" class="screen">
+            <header class="app-header">
+                <h1 data-i18n="notif_title">Сповіщення</h1>
+            </header>
+            <main class="content">
+                <div class="notif-controls" style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                    <button class="btn-small" style="background-color: transparent; color: var(--primary-color); border: 1px solid var(--primary-color);" data-open-modal="modal-manage-notifs" data-i18n="btn_manage">Керування</button>
+                    <button id="btn-read-all" class="btn-small" style="background-color: var(--border-color); color: var(--text-main);" data-i18n="btn_read_all">Прочитати всі</button>
+                </div>
+                <div id="notifications-list" class="notifications-list"></div>
+            </main>
+        </section>
+
+        <section id="screen-settings" class="screen">
+            <header class="app-header">
+                <h1 data-i18n="settings_title">Налаштування</h1>
+            </header>
+            <main class="content">
+                
+                <div class="settings-menu">
+                    <button class="settings-menu-btn" data-open-modal="modal-add-med">
+                        <span class="menu-icon">➕</span> <span data-i18n="menu_add_med">Додати новий препарат</span>
+                    </button>
+                    <button class="settings-menu-btn" data-open-modal="modal-doctor">
+                        <span class="menu-icon">🩺</span> <span data-i18n="menu_doctor">Візит до лікаря</span>
+                    </button>
+                    <button class="settings-menu-btn" data-open-modal="modal-data">
+                        <span class="menu-icon">💾</span> <span data-i18n="menu_data">Дані (Експорт/Імпорт)</span>
+                    </button>
+                    
+                    <button class="settings-menu-btn" data-open-modal="modal-feedback">
+                        <span class="menu-icon">📝</span> <span data-i18n="menu_feedback">Залишити відгук</span>
+                    </button>
+
+                    <div class="settings-menu-item">
+                        <div><span class="menu-icon">🌍</span> <span data-i18n="menu_language">Мова</span></div>
+                        <select id="lang-toggle" class="med-input" style="width: auto; margin-bottom: 0; padding: 4px 10px; height: 32px; font-weight: 600;">
+                            <option value="ua">Українська</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    
+                    <div class="settings-menu-item">
+                        <div><span class="menu-icon">🌙</span> <span data-i18n="menu_theme">Темна тема</span></div>
+                        <label class="switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+            </main>
+        </section>
+
+        <nav class="bottom-nav">
+            <a href="#" class="nav-item active" data-target="screen-home">
+                <div class="nav-icon">🏠</div>
+                <span data-i18n="nav_home">Головна</span>
+            </a>
+            <a href="#" class="nav-item" data-target="screen-calendar">
+                <div class="nav-icon">📅</div>
+                <span data-i18n="nav_calendar">Календар</span>
+            </a>
+            <a href="#" class="nav-item" data-target="screen-notifications">
+                <div class="nav-icon nav-icon-rel">🔔<span id="nav-badge" class="badge"></span></div>
+                <span data-i18n="nav_notifications">Сповіщ.</span>
+            </a>
+            <a href="#" class="nav-item" data-target="screen-settings">
+                <div class="nav-icon">⚙️</div>
+                <span data-i18n="nav_settings">Налашт.</span>
+            </a>
+        </nav>
+        
+    </div>
+
+    <div id="modal-add-med" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="add_med_title">➕ Додати препарат</h3>
+                <button class="icon-btn close-modal">✖</button>
+            </div>
+            <div class="modal-body-scroll">
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="med-name-input" class="med-input" data-i18n-placeholder="med_name_ph" placeholder="Назва препарату..." autocomplete="off">
+                    <div id="autocomplete-list" class="autocomplete-items"></div>
+                </div>
+                
+                <div class="date-input-wrapper">
+                    <label data-i18n="date_opened">Дата відкриття флакона:</label>
+                    <input type="date" id="med-date-input" class="med-input">
+                </div>
+
+                <div class="date-input-wrapper">
+                    <label data-i18n="exp_days">Термін придатності (днів):</label>
+                    <input type="number" id="med-exp-days" class="med-input" value="28" min="1">
+                </div>
+
+                <div class="date-input-wrapper">
+                    <label data-i18n="schedule_type">Режим прийому:</label>
+                    <select id="med-schedule-type" class="med-input">
+                        <option value="" data-i18n="sched_need">Не фіксований</option>
+                        <option value="interval" data-i18n="sched_interval">Інтервал (у годинах)</option>
+                        <option value="exact" data-i18n="sched_exact" selected>Конкретний час</option>
+                    </select>
+                </div>
+                
+                <div class="autocomplete-wrapper" id="med-schedule-val-wrapper" style="display: none;">
+                    <input type="number" id="med-schedule-val" class="med-input" data-i18n-placeholder="sched_interval_ph" placeholder="Напр. 4 (кожні 4 години)" min="1">
+                </div>
+
+                <div class="autocomplete-wrapper" id="med-schedule-exact-wrapper" style="display: block;">
+                    <div class="flex-row">
+                        <input type="time" id="time-input-add" class="med-input" style="margin-bottom: 0;">
+                        <button id="btn-add-time" type="button" class="btn-small" data-i18n="btn_add">Додати</button>
+                    </div>
+                    <div id="added-times-list" class="times-list"></div>
+                </div>
+
+                <div id="med-reminder-toggle-wrapper" class="date-input-wrapper">
+                    <label data-i18n="enable_reminder">Надсилати нагадування перед прийомом:</label>
+                    <div class="flex-row" style="align-items: center; margin-bottom: 8px;">
+                        <label class="switch">
+                            <input type="checkbox" id="med-reminder-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="med-reminder-text" data-i18n="disabled">Вимкнено</span>
+                    </div>
+                </div>
+
+                <div class="date-input-wrapper" id="med-reminder-offset-wrapper" style="display: none;">
+                    <label data-i18n="reminder_offset">Час нагадування про закапування:</label>
+                    <select id="med-reminder-offset" class="med-input">
+                        <option value="0" data-i18n="remind_0">Вчасно</option>
+                        <option value="5" data-i18n="remind_5">За 5 хв</option>
+                        <option value="10" data-i18n="remind_10">За 10 хв</option>
+                        <option value="15" data-i18n="remind_15">За 15 хв</option>
+                    </select>
+                </div>
+
+                <div class="date-input-wrapper">
+                    <label data-i18n="block_btn_pause">Пауза між препаратами:</label>
+                    <div class="flex-row" style="align-items: center; margin-bottom: 8px;">
+                        <label class="switch">
+                            <input type="checkbox" id="med-pause-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="med-pause-text" data-i18n="disabled">Вимкнено</span>
+                    </div>
+                </div>
+
+                <div class="date-input-wrapper" id="med-pause-duration-wrapper" style="display: none;">
+                    <label data-i18n="pause_time_mins">Час паузи (у хвилинах):</label>
+                    <input type="number" id="med-pause-duration" class="med-input" value="10" min="1">
+                </div>
+
+                <button id="save-med-btn" class="btn-secondary" data-i18n="btn_save_med">Зберегти препарат</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-edit-med" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="edit_med_title">✏️ Редагувати препарат</h3>
+                <button class="icon-btn close-modal">✖</button>
+            </div>
+            <div class="modal-body-scroll">
+                <input type="hidden" id="edit-med-id">
+                <h4 id="edit-med-name-display" style="color: var(--primary-color); margin-bottom: 12px; text-align: center;"></h4>
+
+                <div class="date-input-wrapper">
+                    <label data-i18n="schedule_type">Режим прийому:</label>
+                    <select id="edit-med-schedule-type" class="med-input">
+                        <option value="" data-i18n="sched_need">Не фіксований</option>
+                        <option value="interval" data-i18n="sched_interval">Інтервал (у годинах)</option>
+                        <option value="exact" data-i18n="sched_exact">Конкретний час</option>
+                    </select>
+                </div>
+                
+                <div class="autocomplete-wrapper" id="edit-med-schedule-val-wrapper" style="display: none;">
+                    <input type="number" id="edit-med-schedule-val" class="med-input" data-i18n-placeholder="sched_interval_ph" placeholder="Напр. 4 (кожні 4 години)" min="1">
+                </div>
+
+                <div class="autocomplete-wrapper" id="edit-med-schedule-exact-wrapper" style="display: none;">
+                    <div class="flex-row">
+                        <input type="time" id="edit-time-input-add" class="med-input" style="margin-bottom: 0;">
+                        <button id="edit-btn-add-time" type="button" class="btn-small" data-i18n="btn_add">Додати</button>
+                    </div>
+                    <div id="edit-added-times-list" class="times-list"></div>
+                </div>
+
+                <div id="edit-med-reminder-toggle-wrapper" class="date-input-wrapper">
+                    <label data-i18n="enable_reminder">Надсилати нагадування перед прийомом:</label>
+                    <div class="flex-row" style="align-items: center; margin-bottom: 8px;">
+                        <label class="switch">
+                            <input type="checkbox" id="edit-med-reminder-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="edit-med-reminder-text"></span>
+                    </div>
+                </div>
+
+                <div class="date-input-wrapper" id="edit-med-reminder-offset-wrapper">
+                    <label data-i18n="reminder_offset">Час нагадування про закапування:</label>
+                    <select id="edit-med-reminder-offset" class="med-input">
+                        <option value="0" data-i18n="remind_0">Вчасно</option>
+                        <option value="5" data-i18n="remind_5">За 5 хв</option>
+                        <option value="10" data-i18n="remind_10">За 10 хв</option>
+                        <option value="15" data-i18n="remind_15">За 15 хв</option>
+                    </select>
+                </div>
+
+                <div class="date-input-wrapper">
+                    <label data-i18n="block_btn_pause">Пауза між препаратами:</label>
+                    <div class="flex-row" style="align-items: center; margin-bottom: 8px;">
+                        <label class="switch">
+                            <input type="checkbox" id="edit-med-pause-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="edit-med-pause-text"></span>
+                    </div>
+                </div>
+
+                <div class="date-input-wrapper" id="edit-med-pause-duration-wrapper">
+                    <label data-i18n="pause_time_mins">Час паузи (у хвилинах):</label>
+                    <input type="number" id="edit-med-pause-duration" class="med-input" min="1">
+                </div>
+
+                <button id="save-edit-med-btn" class="btn-secondary" data-i18n="btn_save_changes">Зберегти зміни</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-manage-notifs" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="btn_manage">Керування</h3>
+                <button class="icon-btn close-modal">✖</button>
+            </div>
+            
+            <div class="date-input-wrapper">
+                <label data-i18n="sound_toggle">Звук сповіщень:</label>
+                <div class="flex-row" style="align-items: center; margin-bottom: 24px;">
+                    <label class="switch">
+                        <input type="checkbox" id="notif-sound-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="notif-sound-text" data-i18n="enabled">Увімкнено</span>
+                </div>
+            </div>
+
+            <button id="btn-modal-delete-all" class="btn-secondary" style="background-color: var(--error-border); color: #fff;" data-i18n="btn_clear_notifs_history">Очистити історію сповіщень</button>
+        </div>
+    </div>
+
+    <div id="modal-doctor" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="menu_doctor">🩺 Візит до лікаря</h3>
+                <button class="icon-btn close-modal">✖</button>
+            </div>
+            <div class="flex-row">
+                <input type="date" id="doctor-date-input" class="med-input" style="margin-bottom: 0;">
+                <button id="btn-add-doctor" type="button" class="btn-small" data-i18n="btn_add">Додати</button>
+            </div>
+            <div id="doctor-visits-list" class="times-list" style="margin-top: 12px;"></div>
+        </div>
+    </div>
+
+    <div id="modal-data" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="menu_data">💾 Управління даними</h3>
+                <button class="icon-btn close-modal">✖</button>
+            </div>
+            <button class="btn-secondary" id="btn-export" style="margin-bottom: 12px; background-color: var(--primary-color);">
+                <span data-i18n="btn_export">⬆️ Експорт даних (Резервна копія)</span>
+            </button>
+            <button class="btn-secondary" id="btn-import" style="background-color: var(--accent-color);" onclick="document.getElementById('file-import').click()">
+                <span data-i18n="btn_import">⬇️ Імпорт даних (.json)</span>
+            </button>
+            <input type="file" id="file-import" accept=".json" style="display: none;">
+        </div>
+    </div>
+
+    <div id="modal-feedback" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="menu_feedback">📝 Відгук</h3>
+                <button class="icon-btn close-modal">✖</button>
+            </div>
+            <div class="modal-body-scroll">
+                <form id="feedback-form" action="https://formspree.io/f/mjgqbblb" method="POST">
+                    <div class="date-input-wrapper">
+                        <label data-i18n="feedback_email">Ваш Email (обов'язково):</label>
+                        <input type="email" name="email" class="med-input" required placeholder="email@example.com">
+                    </div>
+                    <div class="date-input-wrapper">
+                        <label data-i18n="feedback_rating">Оцінка додатка:</label>
+                        <div class="star-rating">
+                            <input type="radio" id="star5" name="rating" value="5" required />
+                            <label for="star5" title="5">★</label>
+                            <input type="radio" id="star4" name="rating" value="4" />
+                            <label for="star4" title="4">★</label>
+                            <input type="radio" id="star3" name="rating" value="3" />
+                            <label for="star3" title="3">★</label>
+                            <input type="radio" id="star2" name="rating" value="2" />
+                            <label for="star2" title="2">★</label>
+                            <input type="radio" id="star1" name="rating" value="1" />
+                            <label for="star1" title="1">★</label>
+                        </div>
+                    </div>
+                    <div class="date-input-wrapper">
+                        <label data-i18n="feedback_message">Повідомлення (необов'язково):</label>
+                        <textarea name="message" class="med-input" rows="3" style="resize: vertical;"></textarea>
+                    </div>
+                    <button type="submit" class="btn-secondary" data-i18n="btn_submit_feedback" style="background-color: var(--accent-color);">Відправити</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="day-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-date-title" data-i18n="modal_details_title">Деталі</h3>
+                <button id="modal-close" class="icon-btn close-modal">✖</button>
+            </div>
+            <div id="modal-body" class="modal-body-scroll"></div>
+        </div>
+    </div>
+
+    <div id="drop-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="modal_drop_title">Що закапуємо?</h3>
+                <button id="drop-modal-close" class="icon-btn close-modal">✖</button>
+            </div>
+            <div id="drop-modal-list" class="drop-med-list"></div>
+            
+            <div id="drop-modal-success" style="display: none; text-align: center; padding: 30px 10px;">
+                <div class="success-checkmark">✅</div>
+                <h3 data-i18n="success_drop" style="color: var(--primary-color); margin-top: 10px;">Успішно!</h3>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
