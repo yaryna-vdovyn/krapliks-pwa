@@ -1,0 +1,22 @@
+{
+  "name": "Krapliks",
+  "short_name": "Krapliks",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1310",
+  "theme_color": "#0d1310",
+  "icons": [
+    {
+      "src": "/images/logoweb.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logoweb.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
