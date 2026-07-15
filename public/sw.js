@@ -1,4 +1,4 @@
-const CACHE_NAME = 'krapliks-cache-v4'; // Оновлюємо версію на v4
+const CACHE_NAME = 'krapliks-cache-v5'; // Оновлюємо версію
 
 // Список всіх файлів та іконок, які потрібно зберегти для офлайн-режиму
 const urlsToCache = [

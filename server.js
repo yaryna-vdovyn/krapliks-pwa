@@ -5,6 +5,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const cron = require('node-cron');
+const mongoose = require('mongoose'); // ДОДАНО: Підключаємо Mongoose
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -19,7 +21,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Ваш наявний рядок, який вже є в коді:
 app.use(express.static(path.join(__dirname, 'public')));
 
 webpush.setVapidDetails(
@@ -31,13 +32,27 @@ webpush.setVapidDetails(
 // ОПЦІЇ ДЛЯ ВИСОКОГО ПРІОРИТЕТУ
 const pushOptions = {
     urgency: 'high',
-    TTL: 24 * 60 * 60 // ВИПРАВЛЕНО: Використовуємо TTL замість timeToLive
+    TTL: 24 * 60 * 60
 };
 
-const pushJobs = {};
+// --- 1. ПІДКЛЮЧЕННЯ ДО MONGODB ---
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('✅ Успішно підключено до бази даних MongoDB!'))
+    .catch(err => console.error('❌ Помилка підключення до MongoDB:', err));
 
-function addNotificationToHistory(endpoint, title, body) {
-    if (!pushJobs[endpoint]) return;
+// --- 2. СХЕМА ДАНИХ КОРИСТУВАЧА У ХМАРІ ---
+const pushJobSchema = new mongoose.Schema({
+    endpoint: { type: String, required: true, unique: true }, // Унікальний ключ браузера
+    subscription: { type: Object, required: true },           // Об'єкт підписки для webpush
+    queue: { type: Array, default: [] },                      // Черга сповіщень
+    soundEnabled: { type: Boolean, default: true },           // Налаштування звуку
+    history: { type: Array, default: [] }                     // Історія сповіщень
+});
+
+const PushJob = mongoose.model('PushJob', pushJobSchema);
+
+// --- ДОПОМІЖНА ФУНКЦІЯ ДЛЯ СТВОРЕННЯ ОБ'ЄКТА ІСТОРІЇ ---
+function createHistoryItem(title, body) {
     let titleKey = 'notif_type_rem';
     let type = 'reminder';
     
@@ -49,7 +64,7 @@ function addNotificationToHistory(endpoint, title, body) {
         type = 'expiry';
     }
     
-    const newNotif = {
+    return {
         id: Date.now() + Math.floor(Math.random() * 1000),
         key: `server_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         type: type,
@@ -58,128 +73,189 @@ function addNotificationToHistory(endpoint, title, body) {
         isRead: false,
         timestamp: Date.now()
     };
-    
-    pushJobs[endpoint].history = pushJobs[endpoint].history || [];
-    pushJobs[endpoint].history.unshift(newNotif);
 }
+
+// --- МАРШРУТИ API (ТЕПЕР АСИНХРОННІ ДЛЯ РОБОТИ З БД) ---
 
 app.post('/api/subscribe', (req, res) => {
     res.status(201).json({ message: 'Підписку ініціалізовано.' });
 });
 
-app.post('/api/sync-pushes', (req, res) => {
-    const { subscription, queue, soundEnabled, localHistory } = req.body;
-    if (!subscription || !subscription.endpoint) return res.sendStatus(400);
+app.post('/api/sync-pushes', async (req, res) => {
+    try {
+        const { subscription, queue, soundEnabled, localHistory } = req.body;
+        if (!subscription || !subscription.endpoint) return res.sendStatus(400);
 
-    const existingHistory = pushJobs[subscription.endpoint]?.history || [];
-    const incomingHistory = localHistory || [];
+        // Шукаємо користувача в базі
+        let user = await PushJob.findOne({ endpoint: subscription.endpoint });
+        const existingHistory = user ? user.history : [];
+        const incomingHistory = localHistory || [];
 
-    const historyMap = new Map();
-    existingHistory.forEach(n => historyMap.set(n.id, n));
-    incomingHistory.forEach(n => {
-        if (!historyMap.has(n.id)) {
-            historyMap.set(n.id, n);
-        } else {
-            if (n.isRead) historyMap.get(n.id).isRead = true;
-        }
-    });
-
-    const mergedHistory = Array.from(historyMap.values()).sort((a, b) => b.timestamp - a.timestamp);
-    pushJobs[subscription.endpoint] = {
-        subscription,
-        queue,
-        soundEnabled,
-        history: mergedHistory
-    };
-    console.log(`[Синхронізація] Оновлено розклад. Черга: ${queue.length}, Історія: ${mergedHistory.length}`);
-    res.sendStatus(200);
-});
-
-app.post('/api/notifications/get', (req, res) => {
-    const { subscription } = req.body;
-    if (!subscription || !subscription.endpoint) return res.status(400).json([]);
-    const user = pushJobs[subscription.endpoint];
-    res.json(user && user.history ? user.history : []);
-});
-
-app.post('/api/notifications/read-all', (req, res) => {
-    const { subscription } = req.body;
-    if (!subscription || !subscription.endpoint) return res.sendStatus(400);
-    if (pushJobs[subscription.endpoint]) {
-        pushJobs[subscription.endpoint].history = (pushJobs[subscription.endpoint].history || []).map(n => ({ ...n, isRead: true }));
-    }
-    res.sendStatus(200);
-});
-
-app.post('/api/notifications/clear', (req, res) => {
-    const { subscription } = req.body;
-    if (!subscription || !subscription.endpoint) return res.sendStatus(400);
-    if (pushJobs[subscription.endpoint]) {
-        pushJobs[subscription.endpoint].history = [];
-    }
-    res.sendStatus(200);
-});
-
-app.post('/api/notifications/mark-read', (req, res) => {
-    const { subscription, id } = req.body;
-    if (!subscription || !subscription.endpoint) return res.sendStatus(400);
-    if (pushJobs[subscription.endpoint] && pushJobs[subscription.endpoint].history) {
-        const idx = pushJobs[subscription.endpoint].history.findIndex(n => n.id === id);
-        if (idx !== -1) pushJobs[subscription.endpoint].history[idx].isRead = true;
-    }
-    res.sendStatus(200);
-});
-
-app.post('/api/send-test-push', (req, res) => {
-    const { title, body, playSound } = req.body;
-    const payload = JSON.stringify({ title: title || 'Тест', body: body || 'Тест', playSound: playSound !== false });
-    
-    Promise.all(Object.keys(pushJobs).map(endpoint => {
-        return webpush.sendNotification(pushJobs[endpoint].subscription, payload, pushOptions)
-            .then(() => {
-                addNotificationToHistory(endpoint, title || 'Тест', body || 'Тест');
-            })
-            .catch(err => console.error('[Тест Помилка]', err));
-    }))
-    .then(() => res.status(200).json({ message: 'Сповіщення успішно розіслані.' }))
-    .catch(err => res.status(500).json({ error: err.toString() }));
-});
-
-cron.schedule('* * * * *', () => {
-    const now = Date.now();
-    for (const endpoint in pushJobs) {
-        const user = pushJobs[endpoint];
-
-        user.queue = user.queue.filter(job => {
-            if (now >= job.timestamp) {
-                if (now - job.timestamp < 5 * 60 * 1000) {
-                    const payload = JSON.stringify({
-                        title: job.title,
-                        body: job.body,
-                        playSound: user.soundEnabled
-                    });
-                    
-                    webpush.sendNotification(user.subscription, payload, pushOptions)
-                        .then(() => {
-                            console.log(`[Push Відправлено] ${job.title}`);
-                            addNotificationToHistory(endpoint, job.title, job.body);
-                        })
-                        .catch(err => {
-                            console.error('[Помилка Push]', err.statusCode);
-                            if (err.statusCode === 410 || err.statusCode === 404) {
-                                delete pushJobs[endpoint];
-                            }
-                        });
-                }
-                return false;
+        // Об'єднуємо історію без дублікатів
+        const historyMap = new Map();
+        existingHistory.forEach(n => historyMap.set(n.id, n));
+        incomingHistory.forEach(n => {
+            if (!historyMap.has(n.id)) {
+                historyMap.set(n.id, n);
+            } else {
+                if (n.isRead) historyMap.get(n.id).isRead = true;
             }
-            return true;
         });
+
+        const mergedHistory = Array.from(historyMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+
+        // Зберігаємо або оновлюємо запис у MongoDB (upsert: true)
+        await PushJob.findOneAndUpdate(
+            { endpoint: subscription.endpoint },
+            { 
+                subscription, 
+                queue, 
+                soundEnabled: soundEnabled !== false, 
+                history: mergedHistory 
+            },
+            { upsert: true, new: true }
+        );
+
+        console.log(`[MongoDB Синхронізація] Оновлено розклад. Черга: ${queue.length}, Історія: ${mergedHistory.length}`);
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('Помилка синхронізації з БД:', err);
+        res.sendStatus(500);
+    }
+});
+
+app.post('/api/notifications/get', async (req, res) => {
+    try {
+        const { subscription } = req.body;
+        if (!subscription || !subscription.endpoint) return res.status(400).json([]);
+        const user = await PushJob.findOne({ endpoint: subscription.endpoint });
+        res.json(user && user.history ? user.history : []);
+    } catch (err) { 
+        res.status(500).json([]); 
+    }
+});
+
+app.post('/api/notifications/read-all', async (req, res) => {
+    try {
+        const { subscription } = req.body;
+        if (!subscription || !subscription.endpoint) return res.sendStatus(400);
+        const user = await PushJob.findOne({ endpoint: subscription.endpoint });
+        if (user && user.history) {
+            user.history = user.history.map(n => ({ ...n, isRead: true }));
+            await user.save();
+        }
+        res.sendStatus(200);
+    } catch (err) { 
+        res.sendStatus(500); 
+    }
+});
+
+app.post('/api/notifications/clear', async (req, res) => {
+    try {
+        const { subscription } = req.body;
+        if (!subscription || !subscription.endpoint) return res.sendStatus(400);
+        await PushJob.findOneAndUpdate({ endpoint: subscription.endpoint }, { history: [] });
+        res.sendStatus(200);
+    } catch (err) { 
+        res.sendStatus(500); 
+    }
+});
+
+app.post('/api/notifications/mark-read', async (req, res) => {
+    try {
+        const { subscription, id } = req.body;
+        if (!subscription || !subscription.endpoint) return res.sendStatus(400);
+        const user = await PushJob.findOne({ endpoint: subscription.endpoint });
+        if (user && user.history) {
+            const idx = user.history.findIndex(n => n.id === id);
+            if (idx !== -1) {
+                user.history[idx].isRead = true;
+                await user.save();
+            }
+        }
+        res.sendStatus(200);
+    } catch (err) { 
+        res.sendStatus(500); 
+    }
+});
+
+app.post('/api/send-test-push', async (req, res) => {
+    try {
+        const { title, body, playSound } = req.body;
+        const payload = JSON.stringify({ title: title || 'Тест', body: body || 'Тест', playSound: playSound !== false });
+        
+        const users = await PushJob.find({}); // Отримуємо всіх користувачів з хмари
+        
+        await Promise.all(users.map(async (user) => {
+            try {
+                await webpush.sendNotification(user.subscription, payload, pushOptions);
+                const newNotif = createHistoryItem(title || 'Тест', body || 'Тест');
+                user.history.unshift(newNotif);
+                await user.save();
+            } catch (err) { 
+                console.error('[Тест Помилка]', err); 
+            }
+        }));
+        
+        res.status(200).json({ message: 'Сповіщення успішно розіслані.' });
+    } catch (err) { 
+        res.status(500).json({ error: err.toString() }); 
+    }
+});
+
+// --- CRON-ТАЙМЕР (ПЕРЕВІРКА ЧЕРГИ У ХМАРІ КОЖНУ ХВИЛИНУ) ---
+cron.schedule('* * * * *', async () => {
+    try {
+        const now = Date.now();
+        const users = await PushJob.find({}); // Зчитуємо актуальні черги з MongoDB
+
+        for (const user of users) {
+            let isModified = false;
+            
+            user.queue = user.queue.filter(job => {
+                if (now >= job.timestamp) {
+                    // Збережено ваше 45-хвилинне вікно актуальності
+                    if (now - job.timestamp < 45 * 60 * 1000) {
+                        const payload = JSON.stringify({
+                            title: job.title,
+                            body: job.body,
+                            playSound: user.soundEnabled
+                        });
+
+                        webpush.sendNotification(user.subscription, payload, pushOptions)
+                            .then(async () => {
+                                console.log(`[Push Відправлено з MongoDB] ${job.title}`);
+                                const newNotif = createHistoryItem(job.title, job.body);
+                                user.history.unshift(newNotif);
+                                await user.save();
+                            })
+                            .catch(async (err) => {
+                                console.error('[Помилка Push]', err.statusCode);
+                                // Якщо браузер видалив підписку (410 або 404) - стираємо запис з бази
+                                if (err.statusCode === 410 || err.statusCode === 404) {
+                                    await PushJob.deleteOne({ endpoint: user.endpoint });
+                                    console.log('🗑️ Неактивну підписку видалено з MongoDB');
+                                }
+                            });
+                    }
+                    isModified = true;
+                    return false; // Видаляємо виконане або застаріле завдання з черги
+                }
+                return true;
+            });
+
+            // Якщо черга змінилася, фіксуємо це в базі даних
+            if (isModified) {
+                await user.save();
+            }
+        }
+    } catch (err) {
+        console.error('Помилка в роботі Cron-таймера з MongoDB:', err);
     }
 });
 
 app.get('/health', (req, res) => {
-    res.status(200).send('Я бадьорий!');
+    res.status(200).send('Я бадьорий і підключений до MongoDB!');
 });
 
 app.listen(PORT, () => {
