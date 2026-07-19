@@ -34,6 +34,7 @@ body {
     line-height: 1.5; 
     overflow-x: hidden;
     overflow-y: scroll; 
+    overscroll-behavior-y: none;
 }
 
 body.is-dragging .med-card * {
@@ -356,7 +357,7 @@ h2, h3, h4 { font-weight: 600; letter-spacing: 0.02em; }
 .settings-menu-btn:hover { background: rgba(255,255,255,0.05); }
 .menu-icon { width: 24px; height: 24px; margin-right: 14px; object-fit: contain; }
 
-.med-input { width: 100%; padding: 14px 16px; font-size: 15px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(0,0,0,0.4); color: var(--text-main); outline: none; margin-bottom: 8px; font-family: inherit;}
+.med-input { width: 100%; padding: 14px 16px; font-size: 16px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(0,0,0,0.4); color: var(--text-main); outline: none; margin-bottom: 8px; font-family: inherit;}
 .med-input:focus { border-color: var(--accent-color); }
 .med-input option { background-color: var(--surface-color); color: var(--text-main); font-weight: 500; }
 
@@ -444,4 +445,9 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 
 input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1) hue-rotate(180deg) brightness(1.5); cursor: pointer;
+}
+
+/* ГАРАНТІЯ ВІДСУТНОСТІ ЗУМУ НА iPHONE */
+input, select, textarea, .med-input, .modal-input {
+    font-size: 16px !important;
 }

@@ -31,8 +31,10 @@ webpush.setVapidDetails(
 
 // ОПЦІЇ ДЛЯ ВИСОКОГО ПРІОРИТЕТУ
 const pushOptions = {
-    urgency: 'high',
-    TTL: 24 * 60 * 60
+    TTL: 24 * 60 * 60,
+    headers: {
+        'Urgency': 'high' // Заголовок обов'язково з великої літери та всередині headers
+    }
 };
 
 // --- 1. ПІДКЛЮЧЕННЯ ДО MONGODB ---

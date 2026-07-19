@@ -12,7 +12,7 @@ const uiText = {
     alert_missing_schedule: "Вкажіть час або інтервал",
     reminder_today: "СЬОГОДНІ", reminder_tmrw: "ЗАВТРА",
     notif_type_doc: "Візит до лікаря", notif_type_exp: "Термін придатності",
-    notif_type_rem: "Нагадування", notif_timer_done: "Час капати!",
+    notif_type_rem: "Нагадування", notif_timer_done: "Паузу завершено! Можна закапувати наступний препарат",
     months: ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"],
     weekdays: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"],
     status_active: "Активний", status_expired: "Прострочено", status_soon: "Скоро"
@@ -890,17 +890,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const history = JSON.parse(localStorage.getItem('appDropHistory')) || []; history.push(newDropRecord);
         localStorage.setItem('appDropHistory', JSON.stringify(history));
-
         const isPauseEnabled = med.pauseEnabled !== undefined ? med.pauseEnabled : false; 
         const pauseMins = med.pauseDuration || 10;
-
+        
         if (isPauseEnabled) {
             const endTimeMs = Date.now() + (pauseMins * 60 * 1000);
-            localStorage.setItem('appTimerEndTime', endTimeMs.toString()); startTimer(endTimeMs);
+            localStorage.setItem('appTimerEndTime', endTimeMs.toString()); 
+            startTimer(endTimeMs);
+
+            // --- [ПОЧАТОК ВСТАВКИ] ВІДПРАВЛЯЄМО ОФЛАЙН-ТАЙМЕР У SERVICE WORKER ---
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SCHEDULE_NOTIFICATION',
+                    title: 'Нагадування',
+                    body: `Паузу завершено! Можна закапувати наступний препарат`,
+                    timestamp: endTimeMs, // Передаємо динамічний час (5, 10 чи 15 хв)
+                    tag: 'med-pause-' + med.id
+                });
+                console.log(`[Triggers API] Заплановано офлайн-пуш для "${med.name}" через ${pauseMins} хв.`);
+            }
+            // --- [КІНЕЦЬ ВСТАВКИ] ------------------------------------------------
+            
         } else {
             if (btnDrop) { btnDrop.style.transform = 'scale(1.1)'; setTimeout(() => btnDrop.style.transform = '', 150); }
         }
-
         updateTodayStats(); renderMedications(); 
         if(document.getElementById('screen-calendar').classList.contains('active')) renderCalendar();
         syncPushesWithServer();
@@ -1257,19 +1270,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function syncPushesWithServer() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-        try {
-            const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
-            if (!sub) return;
-            const queue = generatePushQueue(); const soundEnabled = localStorage.getItem('appSoundEnabled') !== 'false';
-            const localHistory = JSON.parse(localStorage.getItem('appNotifications')) || [];
-            
-            await fetch('/api/sync-pushes', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscription: sub, queue, soundEnabled, localHistory })
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+        const reg = await navigator.serviceWorker.ready; 
+        const sub = await reg.pushManager.getSubscription();
+        if (!sub) return;
+        
+        const queue = generatePushQueue(); // Ваша готова черга всіх майбутніх подій
+        const soundEnabled = localStorage.getItem('appSoundEnabled') !== 'false';
+        const localHistory = JSON.parse(localStorage.getItem('appNotifications')) || [];
+        
+        // --- [ПОЧАТОК ДОДАНОГО КОДУ] АВТОНОМНІ ОФЛАЙН-ТАЙМЕРИ ДЛЯ ANDROID ---
+        if (navigator.serviceWorker.controller) {
+            queue.forEach(item => {
+                // Відправляємо кожну подію з розкладу в наш sw.js
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SCHEDULE_NOTIFICATION',
+                    title: item.title || 'Krapliks',
+                    body: item.body,
+                    timestamp: item.timestamp,
+                    // Робимо унікальний тег, щоб сповіщення не дублювалися з серверними
+                    tag: `auto-${item.type}-${item.timestamp}` 
+                });
             });
-        } catch (e) {}
-    }
+            console.log(`[Triggers API] Заплановано ${queue.length} автономних сповіщень в офлайн-чергу.`);
+        }
+        // --- [КІНЕЦЬ ДОДАНОГО КОДУ] -----------------------------------------
+
+        // Ваша стандартна відправка черги на сервер Render
+        await fetch('/api/sync-pushes', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription: sub, queue, soundEnabled, localHistory })
+        });
+    } catch (e) {}
+}
 
     async function registerServiceWorkerAndSubscribe() {
         if (Notification.permission === 'default' && !localStorage.getItem('pushRequested')) {
