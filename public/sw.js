@@ -1,4 +1,4 @@
-const CACHE_NAME = 'krapliks-cache-v10'; // Оновлено до v10 для активації запобіжника від спаму
+const CACHE_NAME = 'krapliks-cache-v15'; // Оновлено
 
 // Список всіх файлів та іконок для офлайн-режиму
 const urlsToCache = [
@@ -95,46 +95,68 @@ self.addEventListener('push', function(event) {
     }
 });
 
-// 2. ОБРОБНИК ДЛЯ ЛОКАЛЬНОГО ОФЛАЙН-ПЛАНУВАННЯ (З SCRIPT.JS)
-self.addEventListener('message', event => {
-    if (!event.data || event.data.type !== 'SCHEDULE_NOTIFICATION') return;
+// 2. ОБРОБНИК ДЛЯ ЛОКАЛЬНОГО ОФЛАЙН-ПЛАНУВАННЯ ТА ОЧИЩЕННЯ ТРИГЕРІВ
+self.addEventListener('message', async event => {
+    if (!event.data) return;
 
-    const data = event.data;
-    const targetTime = data.timestamp; // Час спрацьовування у мілісекундах
-    const now = Date.now();
-
-    // 1. Перевіряємо, чи підтримує браузер тригери (Android Chrome/Samsung)
-    const supportsTriggers = 'showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined';
-
-    // 2. ЗАПОБІЖНИК ВІД СПАМУ НА ПК ТА iOS:
-    // Якщо це пуш на майбутнє, АЛЕ пристрій не підтримує офлайн-таймери — перериваємо виконання!
-    // Ми не виводимо сповіщення зараз, його надішле сервер Render у свій час.
-    if (targetTime > now && !supportsTriggers) {
-        console.log(`[Triggers API] ПК/iOS не підтримує офлайн-таймер. Пуш "${data.title}" залишено для сервера.`);
-        return; 
+    // --- НОВИЙ БЛОК: ВИДАЛЕННЯ СТАРИХ АВТО-РОЗКЛАДІВ ПЕРЕД ОНОВЛЕННЯМ ---
+    if (event.data.type === 'CLEAR_OLD_TRIGGERS') {
+        if ('getNotifications' in self.registration) {
+            try {
+                // Отримуємо всі сповіщення (навіть ті, що сплять у будильнику Android)
+                const notifs = await self.registration.getNotifications({ includeTriggered: true });
+                notifs.forEach(n => {
+                    // Видаляємо тільки регулярний розклад (теги починаються на "auto-"),
+                    // але НЕ чіпаємо активну паузу чи інші кастомні сповіщення!
+                    if (n.tag && n.tag.startsWith('auto-')) {
+                        n.close();
+                    }
+                });
+                console.log('[Triggers API] Старі неактуальні години розкладу успішно видалено.');
+            } catch (e) {
+                console.error('Помилка очищення старих тригерів:', e);
+            }
+        }
+        return;
     }
 
-    const options = {
-        body: data.body || 'Час капати!',
-        icon: '/images/logoweb.png',
-        badge: '/images/badge-icon.png',
-        vibrate: [200, 100, 200, 100, 200, 100, 200],
-        tag: data.tag || ('krapliks-local-' + targetTime),
-        renotify: true,
-        requireInteraction: true,
-        data: { url: '/' }
-    };
+    // --- НАЯВНИЙ БЛОК: ПЛАНУВАННЯ НОВОГО СПОВІЩЕННЯ ---
+    if (event.data.type === 'SCHEDULE_NOTIFICATION') {
+        const data = event.data;
+        const targetTime = data.timestamp; // Час спрацьовування у мілісекундах
+        const now = Date.now();
 
-    // Вмикаємо Notification Triggers API для підтримуваних Android-пристроїв
-    if (supportsTriggers && targetTime > now) {
-        options.showTrigger = new TimestampTrigger(targetTime);
-        console.log(' [Triggers API] Заплановано точний офлайн-пуш на Android:', new Date(targetTime));
+        // Перевіряємо, чи підтримує браузер тригери (Android Chrome/Samsung)
+        const supportsTriggers = 'showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined';
+
+        // ЗАПОБІЖНИК ВІД СПАМУ НА ПК ТА iOS:
+        if (targetTime > now && !supportsTriggers) {
+            console.log(`[Triggers API] ПК/iOS не підтримує офлайн-таймер. Пуш "${data.title}" залишено для сервера.`);
+            return; 
+        }
+
+        const options = {
+            body: data.body || 'Час капати!',
+            icon: '/images/logoweb.png',
+            badge: '/images/badge-icon.png',
+            vibrate: [200, 100, 200, 100, 200, 100, 200],
+            tag: data.tag || ('krapliks-local-' + targetTime),
+            renotify: true,
+            requireInteraction: true,
+            data: { url: '/' }
+        };
+
+        // Вмикаємо Notification Triggers API для підтримуваних Android-пристроїв
+        if (supportsTriggers && targetTime > now) {
+            options.showTrigger = new TimestampTrigger(targetTime);
+            console.log(' [Triggers API] Заплановано точний офлайн-пуш на Android:', new Date(targetTime));
+        }
+
+        event.waitUntil(
+            self.registration.showNotification(data.title || 'Krapliks', options)
+            .catch(err => console.error('Помилка реєстрації тригера:', err))
+        );
     }
-
-    event.waitUntil(
-        self.registration.showNotification(data.title || 'Krapliks', options)
-        .catch(err => console.error('Помилка реєстрації тригера:', err))
-    );
 });
 
 self.addEventListener('notificationclick', function(event) {
@@ -152,4 +174,19 @@ self.addEventListener('notificationclick', function(event) {
             }
         })
     );
+});
+
+// --- 3. ОБРОБНИК ФОНОВОЇ СИНХРОНІЗАЦІЇ (BACKGROUND SYNC) ---
+self.addEventListener('sync', event => {
+    if (event.tag === 'sync-pushes-queue') {
+        console.log('[SW Sync] З\'явився інтернет! Відправляємо чергу на сервер...');
+        event.waitUntil(
+            self.clients.matchAll({ type: 'window' }).then(clients => {
+                // Сповіщаємо відкриту вкладку додатка, щоб вона повторила відправку fetch
+                if (clients && clients.length > 0) {
+                    clients[0].postMessage({ type: 'RETRY_SYNC' });
+                }
+            })
+        );
+    }
 });

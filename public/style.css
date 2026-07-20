@@ -451,3 +451,42 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 input, select, textarea, .med-input, .modal-input {
     font-size: 16px !important;
 }
+
+/* --- ІНДИКАТОР ОФЛАЙН-РЕЖИМУ (ОНОВЛЕНО ДЛЯ НИЖНЬОЇ ПАНЕЛІ) --- */
+.offline-banner {
+  position: fixed;
+  bottom: 70px; /* Відступ від низу (щоб не перекривати bottom-nav) */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface-glass);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-top: 1px solid var(--accent-color); /* Змінено з border-bottom на border-top */
+  color: var(--text-main);
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10000;
+  box-shadow: var(--shadow);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+}
+
+/* Коли банер прихований, він плавно зсувається вниз і стає прозорим */
+.offline-banner.hidden {
+  transform: translate(-50%, 150%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.offline-banner .banner-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 0;
+  filter: drop-shadow(0 0 5px rgba(212, 163, 115, 0.5));
+}

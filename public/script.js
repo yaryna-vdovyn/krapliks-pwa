@@ -129,11 +129,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.data && event.data.type === 'PUSH_RECEIVED') {
                 const pushData = event.data.data;
                 showPushToast(pushData.title, pushData.body);
-                renderNotifications(); 
+                renderNotifications();
+            }
+
+            // --- ПЕРЕНЕСЕНО СЮДИ (ВСЕРЕДИНУ СЛУХАЧА MESSAGE) ---
+            if (event.data && event.data.type === 'RETRY_SYNC') {
+                console.log('[Sync] Отримано команду фонової синхронізації від SW. Повторюємо відправку...');
+                syncPushesWithServer();
             }
         });
     }
-
+    
     function updateBadge() {
         const notifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
         const badge = document.getElementById('nav-badge');
@@ -141,14 +147,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (badge) badge.style.display = hasUnread ? 'block' : 'none';
     }
 
-    async function renderNotifications() {
+    async function renderNotifications(skipServerSync = false) {
         const list = document.getElementById('notifications-list');
         if (!list) return;
-
+    
         const drawLocalList = () => {
             const notifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
             list.innerHTML = '';
-
+        
             if (notifs.length === 0) {
                 list.innerHTML = `<p class="empty-state-text">${uiText.no_notifs}</p>`;
                 updateBadge(); 
@@ -198,7 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         drawLocalList();
 
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
+        // Не робимо запит на сервер, якщо ми викликали рендер після локального очищення
+        if (!skipServerSync && 'serviceWorker' in navigator && 'PushManager' in window) {
             try {
                 const reg = await navigator.serviceWorker.ready;
                 const sub = await reg.pushManager.getSubscription();
@@ -225,8 +232,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-read-all')?.addEventListener('click', async () => {
         const notifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
-        notifs.forEach(n => n.isRead = true); localStorage.setItem('appNotifications', JSON.stringify(notifs));
-        renderNotifications();
+        notifs.forEach(n => n.isRead = true); 
+        localStorage.setItem('appNotifications', JSON.stringify(notifs));
+        
+        // Передаємо true: миттєве локальне оновлення без ризику повернути старі дані з хмари
+        renderNotifications(true); 
+        
         try {
             const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
             if (sub) fetch('/api/notifications/read-all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) });
@@ -234,8 +245,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-modal-delete-all')?.addEventListener('click', async () => {
-        localStorage.removeItem('appNotifications'); renderNotifications(); 
+        // Надійно записуємо пустий масив замість повного removeItem
+        localStorage.setItem('appNotifications', JSON.stringify([])); 
+        
+        // Передаємо true: список очищується миттєво з ПЕРШОГО кліку
+        renderNotifications(true); 
         closeModal(document.getElementById('modal-manage-notifs'));
+        
         try {
             const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
             if (sub) fetch('/api/notifications/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) });
@@ -1280,29 +1296,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const soundEnabled = localStorage.getItem('appSoundEnabled') !== 'false';
         const localHistory = JSON.parse(localStorage.getItem('appNotifications')) || [];
         
-        // --- [ПОЧАТОК ДОДАНОГО КОДУ] АВТОНОМНІ ОФЛАЙН-ТАЙМЕРИ ДЛЯ ANDROID ---
         if (navigator.serviceWorker.controller) {
+            // 1. Спершу даємо команду видалити всі старі заплановані години з пам'яті
+            navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_OLD_TRIGGERS' });
+
+            // 2. Тепер записуємо в абсолютно чистий будильник новий актуальний розклад
             queue.forEach(item => {
+                // Витягуємо безпечну назву для тегу (тільки літери та цифри), щоб уникнути колізій
+                const safeName = item.body ? item.body.replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').slice(-15) : 'drop';
+                const deterministicTag = `auto-${item.type}-${item.timestamp}-${safeName}`;
+
                 // Відправляємо кожну подію з розкладу в наш sw.js
                 navigator.serviceWorker.controller.postMessage({
                     type: 'SCHEDULE_NOTIFICATION',
                     title: item.title || 'Krapliks',
                     body: item.body,
                     timestamp: item.timestamp,
-                    // Робимо унікальний тег, щоб сповіщення не дублювалися з серверними
-                    tag: `auto-${item.type}-${item.timestamp}` 
+                    tag: deterministicTag 
                 });
             });
-            console.log(`[Triggers API] Заплановано ${queue.length} автономних сповіщень в офлайн-чергу.`);
+            console.log(`[Triggers API] Старі тригери очищено. Заплановано ${queue.length} автономних сповіщень в офлайн-чергу.`);
         }
-        // --- [КІНЕЦЬ ДОДАНОГО КОДУ] -----------------------------------------
 
         // Ваша стандартна відправка черги на сервер Render
         await fetch('/api/sync-pushes', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ subscription: sub, queue, soundEnabled, localHistory })
         });
-    } catch (e) {}
+    } catch (e) {
+        console.warn('[Sync] Помилка відправки на Render. Реєструємо Background Sync...', e);
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                await reg.sync.register('sync-pushes-queue');
+                console.log('[Sync] Тег sync-pushes-queue успішно зареєстровано.');
+            } catch (syncErr) {
+                console.error('[Sync] Не вдалося зареєструвати фонову синхронізацію:', syncErr);
+            }
+        }
+    }
 }
 
     async function registerServiceWorkerAndSubscribe() {
@@ -1333,9 +1365,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- ІНІЦІАЛІЗАЦІЯ ---
+    // --- ЗАХИСТ ПАМ'ЯТІ ДОДАТКА ВІД ОЧИЩЕННЯ БРАУЗЕРОМ ---
+async function requestPersistentStorage() {
+    if (navigator.storage && navigator.storage.persist) {
+        const isPersisted = await navigator.storage.persist();
+        console.log(`[Storage] Статус постійного сховища: ${isPersisted ? 'ПОСТІЙНЕ (Захищено)' : 'ТИМЧАСОВЕ'}`);
+    }
+}
+requestPersistentStorage();
+
     updateBadge(); checkTimerOnLoad(); renderDoctorVisits(); checkDoctorVisitsUI();
     renderMedications(); updateTodayStats(); renderCalendar(); renderNotifications();
     registerServiceWorkerAndSubscribe();
 
     setTimeout(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, 50);
+
+// --- УПРАВЛІННЯ ІНДИКАТОРОМ МЕРЕЖІ ---
+    const offlineBanner = document.getElementById('offline-banner');
+    let offlineTimer = null; // Змінна для зберігання таймера
+
+    function updateNetworkStatus() {
+        if (!offlineBanner) return;
+
+        // Очищаємо попередній таймер при будь-якій зміні статусу
+        if (offlineTimer) clearTimeout(offlineTimer);
+
+        if (navigator.onLine) {
+            offlineBanner.classList.add('hidden');
+        } else {
+            offlineBanner.classList.remove('hidden');
+
+            // Автоматично ховаємо банер через 5 секунд (5000 мс)
+            offlineTimer = setTimeout(() => {
+                offlineBanner.classList.add('hidden');
+            }, 5000);
+        }
+    }
+
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+    updateNetworkStatus();
 });
