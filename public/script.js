@@ -147,9 +147,68 @@ document.addEventListener('DOMContentLoaded', () => {
         if (badge) badge.style.display = hasUnread ? 'block' : 'none';
     }
 
+    // === [НОВА ФУНКЦІЯ: ЗЧИТУВАННЯ БАЗИ INDEXEDDB] ===
+    async function getOfflineNotifsFromDB() {
+        return new Promise((resolve) => {
+            const request = indexedDB.open('KrapliksDB', 1);
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('offline_notifs')) {
+                    db.createObjectStore('offline_notifs', { keyPath: 'id' });
+                }
+            };
+            request.onsuccess = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('offline_notifs')) { resolve([]); return; }
+                const tx = db.transaction('offline_notifs', 'readwrite');
+                const store = tx.objectStore('offline_notifs');
+                const getAllReq = store.getAll();
+                
+                getAllReq.onsuccess = () => {
+                    const allItems = getAllReq.result || [];
+                    const now = Date.now();
+                    
+                    // 1. Відбираємо ТІЛЬКИ ті пуші, час прийому яких уже настав або минув
+                    const readyItems = allItems.filter(item => item.timestamp <= now);
+
+                    // === [ДОДАЙТЕ ЦЕЙ РЯДОК]: Примусово захищаємо статус "непрочитано", щоб пуші ЗАВЖДИ були зеленими ===
+                    readyItems.forEach(item => {
+                        item.isRead = (item.isRead !== undefined && item.isRead !== null) ? item.isRead : false;
+                    });
+                    // ===================================================================================================
+
+                    // 2. Видаляємо з IndexedDB виключно ті записи, які ми зараз переносимо в історію.
+                    // Майбутні заплановані прийоми залишаються в базі і не губляться.
+                    readyItems.forEach(item => store.delete(item.id));
+                    
+                    resolve(readyItems);
+                };
+                getAllReq.onerror = () => resolve([]);
+            };
+            request.onerror = () => resolve([]);
+        });
+    }
+
     async function renderNotifications(skipServerSync = false) {
         const list = document.getElementById('notifications-list');
         if (!list) return;
+
+        // === [ВСТАВИТИ СЮДИ: ПЕРЕНЕСЕННЯ ОФЛАЙН-ПУШІВ В ІСТОРІЮ] ===
+        const idbNotifs = await getOfflineNotifsFromDB();
+        if (idbNotifs.length > 0) {
+            const localNotifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
+            const tempMap = new Map();
+            localNotifs.forEach(n => tempMap.set(n.id + '_' + n.text, n));
+            idbNotifs.forEach(n => {
+                // Додаємо в історію тільки ті сповіщення, час прийому яких вже настав
+                if (n.timestamp <= Date.now() && !tempMap.has(n.id + '_' + n.text)) {
+                    tempMap.set(n.id + '_' + n.text, n);
+                }
+            });
+            const updated = Array.from(tempMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+            localStorage.setItem('appNotifications', JSON.stringify(updated));
+        }
+        // ==========================================================
     
         const drawLocalList = () => {
             const notifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
@@ -171,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let iconHtml = '';
                 if (notif.type === 'doctor') iconHtml = `<img src="assets/icons/doctor.svg" class="inline-icon">`;
                 else if (notif.type === 'expiry') iconHtml = `<img src="assets/icons/warning.svg" class="inline-icon">`;
-                else if (notif.type === 'reminder') iconHtml = `<img src="assets/icons/drops.svg" class="inline-icon">`;
+                else if (notif.type === 'reminder' || notif.type === 'pause') iconHtml = `<img src="assets/icons/drops.svg" class="inline-icon">`;
 
                 card.innerHTML = `
                     <div class="notif-title"><span style="display:flex; align-items:center;">${iconHtml} ${finalTitle}</span><span class="notif-time">${timeStr}</span></div>
@@ -214,16 +273,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (res.ok) {
                         const serverNotifs = await res.json();
                         const localNotifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
+                        // === [ФІНАЛЬНА ОБРОБКА: ЗАХИСТ ВІД ДУБЛІКАТІВ + ПІДТРИМКА ОДНОЧАСНИХ ПРИЙОМІВ] ===
                         const historyMap = new Map();
-                        localNotifs.forEach(n => historyMap.set(n.id, n));
-                        serverNotifs.forEach(n => {
-                            if (!historyMap.has(n.id)) historyMap.set(n.id, n);
-                            else if (n.isRead) historyMap.get(n.id).isRead = true;
+                        
+                        // 1. Записуємо всі локальні сповіщення. Ключ = id + текст
+                        localNotifs.forEach(n => historyMap.set(n.id + '_' + n.text, n));
+                        
+                        // 2. Обробляємо хмарні сповіщення з сервера Render
+                        serverNotifs.forEach(serverN => {
+                            const exactKey = serverN.id + '_' + serverN.text;
+                            
+                            // Шукаємо, чи є вже в пам'яті локальне нагадування з ТАКИМ САМИМ текстом
+                            // і близьким часом створення (різниця менше 10 хвилин)
+                            const duplicateKey = Array.from(historyMap.keys()).find(key => {
+                                const localN = historyMap.get(key);
+                                const isSameText = localN.text === serverN.text;
+                                const isCloseInTime = Math.abs(localN.timestamp - serverN.timestamp) < (10 * 60 * 1000);
+                                return isSameText && isCloseInTime;
+                            });
+
+                            if (duplicateKey) {
+                                // Якщо знайшли локального "близнюка" (наприклад, створеного в офлайні з тимчасовим ID):
+                                // Видаляємо старий запис і зберігаємо оновлений з офіційним ID з бази даних
+                                const existing = historyMap.get(duplicateKey);
+                                historyMap.delete(duplicateKey);
+                                historyMap.set(exactKey, {
+                                    ...existing,
+                                    id: serverN.id, // Підміняємо тимчасовий ID на постійний серверний
+                                    isRead: existing.isRead || serverN.isRead // Зберігаємо статус прочитання
+                                });
+                            } else if (!historyMap.has(exactKey)) {
+                                // Якщо це абсолютно нове сповіщення — просто додаємо його
+                                historyMap.set(exactKey, serverN);
+                            } else if (serverN.isRead) {
+                                // Якщо сповіщення вже є, але на сервері воно позначено прочитаним — оновлюємо статус
+                                historyMap.get(exactKey).isRead = true;
+                            }
                         });
+
                         const merged = Array.from(historyMap.values()).sort((a, b) => b.timestamp - a.timestamp);
                         localStorage.setItem('appNotifications', JSON.stringify(merged));
                         
                         drawLocalList();
+                        // ===============================================================================
                     }
                 }
             } catch (e) {}
@@ -509,7 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             card.innerHTML = `
                 <div class="med-card-header">
-                    <span class="drag-handle" title="Потягніть, щоб змінити порядок">☰</span>
+                    <span class="drag-handle" title="Потягніть, щоб змінити порядок"><img src="assets/icons/gripper.svg" class="drag-icon" alt="Порядок"></span>
                     <img src="${med.image}" alt="${med.name}" class="med-card-thumb" onerror="this.src='${DEFAULT_ICON}'">
                     <div class="med-title-wrap">
                         <h3>${med.name}</h3>
@@ -919,14 +1011,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 navigator.serviceWorker.controller.postMessage({
                     type: 'SCHEDULE_NOTIFICATION',
                     title: 'Нагадування',
-                    body: `Паузу завершено! Можна закапувати наступний препарат`,
-                    timestamp: endTimeMs, // Передаємо динамічний час (5, 10 чи 15 хв)
-                    tag: 'med-pause-' + med.id
+                    body: uiText.notif_timer_done,
+                    text: uiText.notif_timer_done, // Додано для захисту від втрати тексту
+                    timestamp: endTimeMs, 
+                    tag: 'auto-pause-' + med.id,
+                    isPause: true // Маркер для повної ізоляції
                 });
-                console.log(`[Triggers API] Заплановано офлайн-пуш для "${med.name}" через ${pauseMins} хв.`);
+                console.log(`[Triggers API] Заплановано офлайн-пуш паузи для "${med.name}" через ${pauseMins} хв.`);
             }
             // --- [КІНЕЦЬ ВСТАВКИ] ------------------------------------------------
-            
+            // === НОВЕ: ПАРАЛЕЛЬНИЙ ХМАРНИЙ ТАЙМЕР ДЛЯ IOS ===
+            if (navigator.onLine && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => {
+                    if (sub) {
+                        fetch('/api/pause-push', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                subscription: sub,
+                                title: 'Нагадування',
+                                body: uiText.notif_timer_done,
+                                delayMs: pauseMins * 60 * 1000,
+                                soundEnabled: localStorage.getItem('appSoundEnabled') !== 'false'
+                            })
+                        }).catch(e => console.log('Не вдалося запустити хмарну паузу', e));
+                    }
+                });
+            }
+            // ================================================
         } else {
             if (btnDrop) { btnDrop.style.transform = 'scale(1.1)'; setTimeout(() => btnDrop.style.transform = '', 150); }
         }
@@ -1280,7 +1392,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const endTimeStr = localStorage.getItem('appTimerEndTime');
         if (endTimeStr) {
             const endTime = parseInt(endTimeStr, 10);
-            if (endTime > now.getTime()) queue.push({ timestamp: endTime, type: 'reminder', title: uiText.notif_type_rem, body: uiText.notif_timer_done });
+            // ЗМІНЕНО: type тепер 'pause' замість 'reminder', і додано поле text
+            if (endTime > now.getTime()) queue.push({ timestamp: endTime, type: 'pause', title: uiText.notif_type_rem, body: uiText.notif_timer_done, text: uiText.notif_timer_done, isPause: true });
         }
         return queue;
     }
@@ -1318,10 +1431,13 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`[Triggers API] Старі тригери очищено. Заплановано ${queue.length} автономних сповіщень в офлайн-чергу.`);
         }
 
-        // Ваша стандартна відправка черги на сервер Render
+        // === [ІМУНІТЕТ ДЛЯ ПАУЗ]: Відфільтровуємо паузи перед відправкою на хмару ===
+        const serverQueue = queue.filter(item => item.type !== 'pause');
+        
+        // Ваша стандартна відправка черги на сервер Render (але вже без пауз)
         await fetch('/api/sync-pushes', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription: sub, queue, soundEnabled, localHistory })
+            body: JSON.stringify({ subscription: sub, queue: serverQueue, soundEnabled, localHistory })
         });
     } catch (e) {
         console.warn('[Sync] Помилка відправки на Render. Реєструємо Background Sync...', e);
@@ -1402,7 +1518,55 @@ requestPersistentStorage();
         }
     }
 
-    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('online', () => {
+        updateNetworkStatus();
+        console.log('[Network] З\'явився інтернет. Примусово відправляємо розклад на сервер...');
+        // Миттєво синхронізуємо всі створені в офлайні нагадування з Render
+        syncPushesWithServer(); 
+    });
     window.addEventListener('offline', updateNetworkStatus);
     updateNetworkStatus();
+});
+
+// === [РОЗУМНЕ ОЧИЩЕННЯ: Видаляємо пуші, старші за 7 днів] ===
+function cleanExpiredNotifications(daysToKeep = 7) {
+    const dbName = 'KrapliksDB';
+    const storeName = 'offline_notifs';
+    const expirationLimit = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
+
+    const request = indexedDB.open(dbName);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(storeName)) return;
+
+        const transaction = db.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const cursorRequest = store.openCursor();
+
+        let deletedCount = 0;
+
+        cursorRequest.onsuccess = function(e) {
+            const cursor = e.target.result;
+            if (cursor) {
+                // Якщо час сповіщення минув більше 7 днів тому — видаляємо запис
+                if (cursor.value.timestamp < expirationLimit) {
+                    cursor.delete();
+                    deletedCount++;
+                }
+                cursor.continue(); // Переходимо до наступного запису
+            } else if (deletedCount > 0) {
+                console.log(`[Storage] Автоочищення: видалено ${deletedCount} застарілих сповіщень з бази.`);
+            }
+        };
+    };
+
+    request.onerror = function() {
+        console.error('[Storage] Помилка доступу до IndexedDB при очищенні.');
+    };
+}
+
+// Запускаємо очищення у фоні при завантаженні додатка
+window.addEventListener('load', () => {
+    cleanExpiredNotifications(7); // Залишаємо історію тільки за останній тиждень
 });

@@ -205,50 +205,74 @@ app.post('/api/send-test-push', async (req, res) => {
     }
 });
 
+app.post('/api/pause-push', async (req, res) => {
+    const { subscription, title, body, delayMs, soundEnabled } = req.body;
+    
+    // Миттєво відповідаємо фронтенду, щоб він не чекав 10 хвилин
+    res.sendStatus(200); 
+
+    // Запускаємо одноразовий таймер суто в пам'яті сервера
+    setTimeout(() => {
+        const payload = JSON.stringify({ 
+            title, 
+            body, 
+            playSound: soundEnabled !== false, 
+            tag: 'cloud_pause_' + Date.now() 
+        });
+        webpush.sendNotification(subscription, payload, pushOptions)
+            .then(() => console.log(`[Хмарна пауза] Відправлено: ${body}`))
+            .catch(() => console.log(`[Хмарна пауза] Помилка (пристрій офлайн)`));
+    }, delayMs);
+});
+
 // --- CRON-ТАЙМЕР (ПЕРЕВІРКА ЧЕРГИ У ХМАРІ КОЖНУ ХВИЛИНУ) ---
 cron.schedule('* * * * *', async () => {
     try {
         const now = Date.now();
-        const users = await PushJob.find({}); // Зчитуємо актуальні черги з MongoDB
-
+        const users = await PushJob.find({}); 
+        
         for (const user of users) {
             let isModified = false;
+            let activeJobs = [];
+            let remainingQueue = [];
             
-            user.queue = user.queue.filter(job => {
+            // 1. Сортуємо: що відправити зараз, а що залишити в черзі
+            user.queue.forEach(job => {
                 if (now >= job.timestamp) {
-                    // Збережено ваше 45-хвилинне вікно актуальності
-                    if (now - job.timestamp < 45 * 60 * 1000) {
-                        const payload = JSON.stringify({
-                            title: job.title,
-                            body: job.body,
-                            playSound: user.soundEnabled
-                        });
-
-                        webpush.sendNotification(user.subscription, payload, pushOptions)
-                            .then(async () => {
-                                console.log(`[Push Відправлено з MongoDB] ${job.title}`);
-                                const newNotif = createHistoryItem(job.title, job.body);
-                                user.history.unshift(newNotif);
-                                await user.save();
-                            })
-                            .catch(async (err) => {
-                                console.error('[Помилка Push]', err.statusCode);
-                                // Якщо браузер видалив підписку (410 або 404) - стираємо запис з бази
-                                if (err.statusCode === 410 || err.statusCode === 404) {
-                                    await PushJob.deleteOne({ endpoint: user.endpoint });
-                                    console.log('🗑️ Неактивну підписку видалено з MongoDB');
-                                }
-                            });
-                    }
+                    if (now - job.timestamp < 45 * 60 * 1000) activeJobs.push(job);
                     isModified = true;
-                    return false; // Видаляємо виконане або застаріле завдання з черги
+                } else {
+                    remainingQueue.push(job);
                 }
-                return true;
             });
-
-            // Якщо черга змінилася, фіксуємо це в базі даних
+            
+            // 2. БЕЗПЕЧНЕ ОНОВЛЕННЯ: Одразу зберігаємо очищену чергу без конфліктів Mongoose
             if (isModified) {
-                await user.save();
+                await PushJob.updateOne({ _id: user._id }, { $set: { queue: remainingQueue } });
+            }
+            
+            // 3. Відправляємо актуальні пуші і безпечно дописуємо їх в історію
+            for (const job of activeJobs) {
+                const payload = JSON.stringify({ title: job.title, body: job.body, playSound: user.soundEnabled });
+                
+                webpush.sendNotification(user.subscription, payload, pushOptions)
+                    .then(async () => {
+                        console.log(`[Push Відправлено з MongoDB] ${job.title}`);
+                        const newNotif = createHistoryItem(job.title, job.body);
+                        
+                        // Використовуємо $push, щоб атомарно додати запис, не перезаписуючи весь документ!
+                        await PushJob.updateOne(
+                            { _id: user._id },
+                            { $push: { history: { $each: [newNotif], $position: 0 } } }
+                        );
+                    })
+                    .catch(async (err) => {
+                        console.error('[Помилка Push]', err.statusCode);
+                        if (err.statusCode === 410 || err.statusCode === 404) {
+                            await PushJob.deleteOne({ _id: user._id });
+                            console.log('🗑️ Неактивну підписку видалено з MongoDB');
+                        }
+                    });
             }
         }
     } catch (err) {

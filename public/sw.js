@@ -1,4 +1,4 @@
-const CACHE_NAME = 'krapliks-cache-v15'; // Оновлено
+const CACHE_NAME = 'krapliks-cache-v34'; // Оновлено
 
 // Список всіх файлів та іконок для офлайн-режиму
 const urlsToCache = [
@@ -23,7 +23,8 @@ const urlsToCache = [
     '/assets/icons/import.svg',
     '/assets/icons/feedback.svg',
     '/assets/icons/warning.svg',
-    '/assets/icons/stats.svg'
+    '/assets/icons/stats.svg',
+    '/assets/icons/gripper.svg'
 ];
 
 self.addEventListener('install', event => {
@@ -57,12 +58,52 @@ self.addEventListener('fetch', event => {
     );
 });
 
-// 1. ОБРОБНИК ПУШІВ З СЕРВЕРА
+// === [ЩИТ ВІД ДУБЛІКАТІВ: Оперативна пам'ять Service Worker] ===
+const recentlyShown = new Map();
+
+function isDuplicateAndLock(text, timestamp) {
+    const now = Date.now();
+    // 1. У ключі залишаємо ВИКЛЮЧНО чисту назву ліків (без жодних хвилин та timeBucket!)
+    const cleanText = (text || '').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').toLowerCase().slice(0, 15);
+    
+    if (recentlyShown.has(cleanText)) {
+        const lastTime = recentlyShown.get(cleanText);
+        // 2. Якщо ліки з такою ж назвою вже показувалися протягом останніх 15 секунд — блокуємо дублікат
+        if (now - lastTime < 15000) {
+            console.log(`[Дублікат заблоковано] Пуш "${text}" вже виведено на екран.`);
+            return true; 
+        }
+    }
+
+    // 3. Записуємо в пам'ять тільки назву ліків і точний час показу
+    recentlyShown.set(cleanText, now);
+
+    // 4. Очищаємо стару пам'ять від записів, старших за 2 хвилини
+    for (const [key, time] of recentlyShown) {
+        if (now - time > 120000) recentlyShown.delete(key);
+    }
+    return false;
+}
+
+// 1. ОБРОБНИК ПУШІВ З СЕРВЕРА (RENDER)
 self.addEventListener('push', function(event) {
     if (!event.data) return;
     try {
         const data = event.data.json();
-        const uniqueTag = data.tag || ('krapliks-med-' + Date.now() + '-' + Math.round(Math.random() * 1000));
+        
+        if (isDuplicateAndLock(data.body || data.title, data.timestamp)) return;
+        
+        const unifiedTag = data.tag || 'krapliks_cloud';
+
+        // --- ДОДАЙТЕ ЦЕЙ БЛОК: Гарантовано зберігаємо хмарний пуш як НЕПРОЧИТАНИЙ ---
+        saveToIndexedDB({
+            id: unifiedTag,
+            titleText: data.title || 'Krapliks',
+            text: data.body || 'Час капати!',
+            timestamp: data.timestamp || Date.now(),
+            isRead: false, // <--- Жорстко забороняємо ставити статус "прочитано"
+            type: 'reminder'
+        }).catch(() => {});
         
         const options = {
             body: data.body,
@@ -71,91 +112,123 @@ self.addEventListener('push', function(event) {
             vibrate: [200, 100, 200, 100, 200, 100, 200],
             silent: data.playSound === false, 
             requireInteraction: true,
-            tag: uniqueTag,
-            renotify: true,
+            tag: data.tag || 'krapliks_cloud',
+            renotify: false, // ВИПРАВЛЕНО: Забороняємо ОС повторно пікати при оновленні вікна
             data: { url: '/' }
         };
 
-        // Підтримка Triggers API, якщо сервер надіслав мітку майбутнього часу
         if (data.timestamp && data.timestamp > Date.now() && 'showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined') {
             options.showTrigger = new TimestampTrigger(data.timestamp);
         }
 
         event.waitUntil(
-            self.registration.showNotification(data.title, options)
+            self.registration.showNotification(data.title || 'Krapliks', options)
             .then(() => self.clients.matchAll({ type: 'window' }))
             .then(clients => {
-                clients.forEach(client => {
-                    client.postMessage({ type: 'PUSH_RECEIVED', data: data });
-                });
+                clients.forEach(client => client.postMessage({ type: 'PUSH_RECEIVED', data: data }));
             })
         );
-    } catch (e) {
-        console.error('Помилка обробки Push:', e);
-    }
+    } catch (e) { console.error('Помилка обробки Push:', e); }
 });
 
-// 2. ОБРОБНИК ДЛЯ ЛОКАЛЬНОГО ОФЛАЙН-ПЛАНУВАННЯ ТА ОЧИЩЕННЯ ТРИГЕРІВ
-self.addEventListener('message', async event => {
-    if (!event.data) return;
+// 2. ОБРОБНИК ДЛЯ ЛОКАЛЬНОГО ПЛАНУВАННЯ
+let fallbackTimeouts = []; // Масив для утримання резервних таймерів
 
-    // --- НОВИЙ БЛОК: ВИДАЛЕННЯ СТАРИХ АВТО-РОЗКЛАДІВ ПЕРЕД ОНОВЛЕННЯМ ---
+self.addEventListener('message', event => {
+    if (!event.data) return;
+    
     if (event.data.type === 'CLEAR_OLD_TRIGGERS') {
+        // 1. Очищаємо резервні таймери
+        fallbackTimeouts.forEach(clearTimeout);
+        fallbackTimeouts = [];
+        
+        // 2. Вбиваємо старі системні тригери
         if ('getNotifications' in self.registration) {
-            try {
-                // Отримуємо всі сповіщення (навіть ті, що сплять у будильнику Android)
-                const notifs = await self.registration.getNotifications({ includeTriggered: true });
-                notifs.forEach(n => {
-                    // Видаляємо тільки регулярний розклад (теги починаються на "auto-"),
-                    // але НЕ чіпаємо активну паузу чи інші кастомні сповіщення!
-                    if (n.tag && n.tag.startsWith('auto-')) {
-                        n.close();
-                    }
-                });
-                console.log('[Triggers API] Старі неактуальні години розкладу успішно видалено.');
-            } catch (e) {
-                console.error('Помилка очищення старих тригерів:', e);
-            }
+            event.waitUntil(
+                self.registration.getNotifications({ includeTriggered: true }).then(notifs => {
+                    notifs.forEach(n => { if (n.tag && n.tag.startsWith('auto-')) n.close(); });
+                }).catch(() => {})
+            );
         }
+
+        // 3. ЗНИЩЕННЯ ПРИВИДІВ: Видаляємо з бази скасовані майбутні нагадування
+        const req = indexedDB.open('KrapliksDB');
+        req.onsuccess = (e) => {
+            const db = e.target.result;
+            if (db.objectStoreNames.contains('offline_notifs')) {
+                const tx = db.transaction('offline_notifs', 'readwrite');
+                const store = tx.objectStore('offline_notifs');
+                const now = Date.now();
+                
+                store.openCursor().onsuccess = (cursorEvent) => {
+                    const cursor = cursorEvent.target.result;
+                    if (cursor) {
+                        // Видаляємо ТІЛЬКИ ті таймери, час яких ще не настав
+                        // Вже отримані пуші залишаються цілими!
+                        if (cursor.value.timestamp > now) cursor.delete();
+                        cursor.continue();
+                    }
+                };
+            }
+        };
         return;
     }
 
-    // --- НАЯВНИЙ БЛОК: ПЛАНУВАННЯ НОВОГО СПОВІЩЕННЯ ---
     if (event.data.type === 'SCHEDULE_NOTIFICATION') {
         const data = event.data;
-        const targetTime = data.timestamp; // Час спрацьовування у мілісекундах
+        const targetTime = data.timestamp;
         const now = Date.now();
-
-        // Перевіряємо, чи підтримує браузер тригери (Android Chrome/Samsung)
         const supportsTriggers = 'showTrigger' in Notification.prototype && typeof TimestampTrigger !== 'undefined';
+        
+        const safeText = data.body ? data.body.replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '') : 'drop';
+        const uniqueId = data.tag || (`notif_${targetTime}_${safeText}`);
+        
+        // ВИПРАВЛЕННЯ: Визначаємо, чи це пауза, щоб не збивати тип сповіщення
+        const isPauseType = uniqueId.includes('pause');
 
-        // ЗАПОБІЖНИК ВІД СПАМУ НА ПК ТА iOS:
-        if (targetTime > now && !supportsTriggers) {
-            console.log(`[Triggers API] ПК/iOS не підтримує офлайн-таймер. Пуш "${data.title}" залишено для сервера.`);
-            return; 
-        }
+        // Зберігаємо в IndexedDB
+        saveToIndexedDB({
+            id: uniqueId,
+            titleText: data.title || 'Krapliks',
+            text: data.body || 'Час капати!',
+            timestamp: targetTime,
+            isRead: false,
+            type: isPauseType ? 'pause' : 'reminder' // Тепер база знатиме правильний тип
+        }).catch(() => {});
 
         const options = {
             body: data.body || 'Час капати!',
             icon: '/images/logoweb.png',
             badge: '/images/badge-icon.png',
             vibrate: [200, 100, 200, 100, 200, 100, 200],
-            tag: data.tag || ('krapliks-local-' + targetTime),
-            renotify: true,
+            tag: uniqueId,
+            renotify: false, 
             requireInteraction: true,
             data: { url: '/' }
         };
-
-        // Вмикаємо Notification Triggers API для підтримуваних Android-пристроїв
+        
+        const triggerDisplay = () => {
+            // ЗАХИСТ ВІД "РОЗМОРОЗКИ" IOS: Якщо телефон був заблокований, і таймер 
+            // прокинувся із запізненням більше ніж на 60 секунд — просто скасовуємо його,
+            // бо сервер (якщо був інтернет) вже встиг виконати цю роботу!
+            if (Date.now() - targetTime > 60000) {
+                console.log('[SW] Локальний таймер безнадійно запізнився. Скасовуємо.');
+                return;
+            }
+            
+            if (isDuplicateAndLock(data.body || data.title, targetTime)) return;
+            self.registration.showNotification(data.title || 'Krapliks', options);
+        };
+        
         if (supportsTriggers && targetTime > now) {
             options.showTrigger = new TimestampTrigger(targetTime);
-            console.log(' [Triggers API] Заплановано точний офлайн-пуш на Android:', new Date(targetTime));
+            event.waitUntil(self.registration.showNotification(data.title || 'Krapliks', options));
+        } else if (targetTime > now) {
+            const timerId = setTimeout(triggerDisplay, targetTime - now);
+            fallbackTimeouts.push(timerId);
+        } else {
+            triggerDisplay();
         }
-
-        event.waitUntil(
-            self.registration.showNotification(data.title || 'Krapliks', options)
-            .catch(err => console.error('Помилка реєстрації тригера:', err))
-        );
     }
 });
 
@@ -190,3 +263,42 @@ self.addEventListener('sync', event => {
         );
     }
 });
+
+// === [ВИПРАВЛЕННЯ 2: Розумне збереження в базі без створення дублікатів] ===
+function saveToIndexedDB(data) {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('KrapliksDB');
+        request.onsuccess = function(event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('offline_notifs')) {
+                resolve(); return;
+            }
+            const tx = db.transaction('offline_notifs', 'readwrite');
+            const store = tx.objectStore('offline_notifs');
+            const getAllReq = store.getAll();
+            
+            getAllReq.onsuccess = function() {
+                const allItems = getAllReq.result || [];
+                const cleanNewText = (data.text || data.titleText || '').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').toLowerCase();
+                const newTime = data.timestamp || Date.now();
+                
+                // Шукаємо, чи немає вже в базі цих ліків з різницею в часі до 3 хвилин (180000 мс)
+                const isDuplicate = allItems.some(item => {
+                    const cleanExisting = (item.text || item.titleText || '').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').toLowerCase();
+                    const timeDiff = Math.abs((item.timestamp || 0) - newTime);
+                    return cleanExisting === cleanNewText && timeDiff < 180000;
+                });
+
+                if (isDuplicate) {
+                    console.log('[SW Storage] Цей препарат вже є в базі. Пропускаємо дублювання рядка.');
+                    resolve();
+                } else {
+                    store.put(data);
+                    resolve();
+                }
+            };
+            tx.oncomplete = () => resolve();
+        };
+        request.onerror = () => reject();
+    });
+}

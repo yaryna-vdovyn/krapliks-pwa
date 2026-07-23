@@ -34,7 +34,6 @@ body {
     line-height: 1.5; 
     overflow-x: hidden;
     overflow-y: scroll; 
-    overscroll-behavior-y: none;
 }
 
 body.is-dragging .med-card * {
@@ -160,9 +159,33 @@ h2, h3, h4 { font-weight: 600; letter-spacing: 0.02em; }
 
 /* ЗОНА ДЛЯ ПЕРЕТЯГУВАННЯ */
 .drag-handle {
-    cursor: grab; padding: 10px; padding-left: 0; font-size: 20px; color: var(--text-muted); transition: color 0.2s;
+    cursor: grab; 
+    /* БУЛО: padding: 10px; padding-left: 0; */
+    /* СТАЛО: залишаємо відступ лише зверху та знизу, праворуч ставимо 0 */
+    padding: 10px 0; 
+    margin-right: -2px; /* Підтягує іконку ближче до білого квадрата препарату */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.drag-handle:active { cursor: grabbing; color: var(--primary-color); }
+
+.drag-icon {
+    width: 17px;
+    height: 17px;
+    object-fit: contain;
+    /* КРИТИЧНО ВАЖЛИВО: Запобігає багу, коли браузер намагається перетягнути саму картинку замість картки препарату */
+    pointer-events: none; 
+    transition: transform 0.2s ease;
+}
+
+.drag-handle:active { 
+    cursor: grabbing; 
+}
+
+/* При натисканні робимо плавне збільшення іконки для візуального відгуку */
+.drag-handle:active .drag-icon {
+    transform: scale(1.15);
+}
 
 .med-card-header { display: flex; align-items: center; gap: 12px; }
 .med-card-thumb { width: 60px; height: 60px; object-fit: contain; border-radius: 12px; background: #fff; flex-shrink: 0; padding: 3px;}
