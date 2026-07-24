@@ -213,11 +213,13 @@ app.post('/api/pause-push', async (req, res) => {
 
     // Запускаємо одноразовий таймер суто в пам'яті сервера
     setTimeout(() => {
-        const payload = JSON.stringify({ 
-            title, 
-            body, 
-            playSound: soundEnabled !== false, 
-            tag: 'cloud_pause_' + Date.now() 
+        const payload = JSON.stringify({
+            title,
+            body,
+            playSound: soundEnabled !== false,
+            tag: 'cloud_pause_' + Date.now(),
+            type: 'pause',       // === ДОДАНО: Щоб вкладка впізнала паузу ===
+            data: { url: '/' }   // === ДОДАНО: Щоб по кліку відкривався додаток ===
         });
         webpush.sendNotification(subscription, payload, pushOptions)
             .then(() => console.log(`[Хмарна пауза] Відправлено: ${body}`))

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'krapliks-cache-v34'; // Оновлено
+const CACHE_NAME = 'krapliks-cache-v42'; // Оновлено
 
 // Список всіх файлів та іконок для офлайн-режиму
 const urlsToCache = [
@@ -85,6 +85,17 @@ function isDuplicateAndLock(text, timestamp) {
     return false;
 }
 
+// Цей блок не чіпає базу, він лише розводить бульбашки на екрані з інтервалом у 2 секунди
+let displayQueue = Promise.resolve();
+
+function safeShowNotification(title, options) {
+    displayQueue = displayQueue.then(() => {
+        return self.registration.showNotification(title, options)
+            .then(() => new Promise(resolve => setTimeout(resolve, 2000))); // Затримка 2 секунди
+    }).catch(e => console.error('[SW] Помилка показу пуша:', e));
+    return displayQueue;
+}
+
 // 1. ОБРОБНИК ПУШІВ З СЕРВЕРА (RENDER)
 self.addEventListener('push', function(event) {
     if (!event.data) return;
@@ -95,14 +106,21 @@ self.addEventListener('push', function(event) {
         
         const unifiedTag = data.tag || 'krapliks_cloud';
 
+        // Шукаємо правильний тип
+        let detectedType = 'reminder';
+        if (data.type) detectedType = data.type;
+        else if (unifiedTag.includes('doctor')) detectedType = 'doctor';
+        else if (unifiedTag.includes('expiry')) detectedType = 'expiry';
+        else if (unifiedTag.includes('pause')) detectedType = 'pause';
+
         // --- ДОДАЙТЕ ЦЕЙ БЛОК: Гарантовано зберігаємо хмарний пуш як НЕПРОЧИТАНИЙ ---
         saveToIndexedDB({
             id: unifiedTag,
             titleText: data.title || 'Krapliks',
             text: data.body || 'Час капати!',
             timestamp: data.timestamp || Date.now(),
-            isRead: false, // <--- Жорстко забороняємо ставити статус "прочитано"
-            type: 'reminder'
+            isRead: false, 
+            type: detectedType // Тепер тип визначається динамічно
         }).catch(() => {});
         
         const options = {
@@ -122,7 +140,7 @@ self.addEventListener('push', function(event) {
         }
 
         event.waitUntil(
-            self.registration.showNotification(data.title || 'Krapliks', options)
+            safeShowNotification(data.title || 'Krapliks', options)
             .then(() => self.clients.matchAll({ type: 'window' }))
             .then(clients => {
                 clients.forEach(client => client.postMessage({ type: 'PUSH_RECEIVED', data: data }));
@@ -183,8 +201,12 @@ self.addEventListener('message', event => {
         const safeText = data.body ? data.body.replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '') : 'drop';
         const uniqueId = data.tag || (`notif_${targetTime}_${safeText}`);
         
-        // ВИПРАВЛЕННЯ: Визначаємо, чи це пауза, щоб не збивати тип сповіщення
-        const isPauseType = uniqueId.includes('pause');
+        // Визначаємо правильний тип сповіщення на основі тегу
+        let detectedType = 'reminder';
+        if (event.data.notifType) detectedType = event.data.notifType;
+        else if (uniqueId.includes('doctor')) detectedType = 'doctor';
+        else if (uniqueId.includes('expiry')) detectedType = 'expiry';
+        else if (uniqueId.includes('pause')) detectedType = 'pause';
 
         // Зберігаємо в IndexedDB
         saveToIndexedDB({
@@ -193,7 +215,7 @@ self.addEventListener('message', event => {
             text: data.body || 'Час капати!',
             timestamp: targetTime,
             isRead: false,
-            type: isPauseType ? 'pause' : 'reminder' // Тепер база знатиме правильний тип
+            type: detectedType // База отримує точний тип
         }).catch(() => {});
 
         const options = {
@@ -208,16 +230,14 @@ self.addEventListener('message', event => {
         };
         
         const triggerDisplay = () => {
-            // ЗАХИСТ ВІД "РОЗМОРОЗКИ" IOS: Якщо телефон був заблокований, і таймер 
-            // прокинувся із запізненням більше ніж на 60 секунд — просто скасовуємо його,
-            // бо сервер (якщо був інтернет) вже встиг виконати цю роботу!
+            // ЗАХИСТ ВІД "РОЗМОРОЗКИ" IOS...
             if (Date.now() - targetTime > 60000) {
                 console.log('[SW] Локальний таймер безнадійно запізнився. Скасовуємо.');
                 return;
             }
             
             if (isDuplicateAndLock(data.body || data.title, targetTime)) return;
-            self.registration.showNotification(data.title || 'Krapliks', options);
+            safeShowNotification(data.title || 'Krapliks', options);
         };
         
         if (supportsTriggers && targetTime > now) {

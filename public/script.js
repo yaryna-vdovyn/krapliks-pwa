@@ -1014,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: uiText.notif_timer_done,
                     text: uiText.notif_timer_done, // Додано для захисту від втрати тексту
                     timestamp: endTimeMs, 
-                    tag: 'auto-pause-' + med.id,
+                    tag: 'auto-pause-' + med.id + '_' + Math.random().toString(36).substr(2, 5),
                     isPause: true // Маркер для повної ізоляції
                 });
                 console.log(`[Triggers API] Заплановано офлайн-пуш паузи для "${med.name}" через ${pauseMins} хв.`);
@@ -1417,7 +1417,7 @@ document.addEventListener('DOMContentLoaded', () => {
             queue.forEach(item => {
                 // Витягуємо безпечну назву для тегу (тільки літери та цифри), щоб уникнути колізій
                 const safeName = item.body ? item.body.replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').slice(-15) : 'drop';
-                const deterministicTag = `auto-${item.type}-${item.timestamp}-${safeName}`;
+                const deterministicTag = `auto-${item.type}-${item.timestamp}-${safeName}_${Math.random().toString(36).substr(2, 5)}`;
 
                 // Відправляємо кожну подію з розкладу в наш sw.js
                 navigator.serviceWorker.controller.postMessage({
