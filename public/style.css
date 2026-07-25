@@ -45,7 +45,7 @@ h2, h3, h4 { font-weight: 600; letter-spacing: 0.02em; }
 
 .app-container { 
     max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; 
-    position: relative; padding-bottom: calc(90px + env(safe-area-inset-bottom)); background-color: var(--bg-color);
+    position: relative; padding-bottom: 90px; background-color: var(--bg-color);
 }
 
 .push-toast { 
@@ -478,7 +478,7 @@ input, select, textarea, .med-input, .modal-input {
 /* --- ІНДИКАТОР ОФЛАЙН-РЕЖИМУ (ОНОВЛЕНО ДЛЯ НИЖНЬОЇ ПАНЕЛІ) --- */
 .offline-banner {
   position: fixed;
-  bottom: calc(70px + env(safe-area-inset-bottom)); /* Динамічний відступ */
+  bottom: 70px; /* Відступ від низу (щоб не перекривати bottom-nav) */
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
@@ -512,20 +512,4 @@ input, select, textarea, .med-input, .modal-input {
   height: 18px;
   margin-right: 0;
   filter: drop-shadow(0 0 5px rgba(212, 163, 115, 0.5));
-}
-
-/* === ПАТЧ ДЛЯ ПЛАВНОГО СКРОЛУ НА ТЕЛЕФОНАХ === */
-
-/* 1. Апаратне прискорення: змушуємо рендерити картки через відеокарту (GPU) */
-.med-card {
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-}
-
-/* 2. Вмикаємо нативний "пружинний" скрол для iOS (Safari) */
-.screen {
-    -webkit-overflow-scrolling: touch;
-    overflow-y: auto;
 }

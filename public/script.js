@@ -12,7 +12,7 @@ const uiText = {
     alert_missing_schedule: "Вкажіть час або інтервал",
     reminder_today: "СЬОГОДНІ", reminder_tmrw: "ЗАВТРА",
     notif_type_doc: "Візит до лікаря", notif_type_exp: "Термін придатності",
-    notif_type_rem: "Нагадування", notif_timer_done: "Паузу завершено! Можна закапувати наступний препарат",
+    notif_type_rem: "Нагадування", notif_type_pause: "Паузу завершено", notif_timer_done: "Можна закапувати наступний препарат",
     months: ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"],
     weekdays: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"],
     status_active: "Активний", status_expired: "Прострочено", status_soon: "Скоро"
@@ -230,7 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 let iconHtml = '';
                 if (notif.type === 'doctor') iconHtml = `<img src="assets/icons/doctor.svg" class="inline-icon">`;
                 else if (notif.type === 'expiry') iconHtml = `<img src="assets/icons/warning.svg" class="inline-icon">`;
-                else if (notif.type === 'reminder' || notif.type === 'pause') iconHtml = `<img src="assets/icons/drops.svg" class="inline-icon">`;
+                else if (notif.type === 'reminder') iconHtml = `<img src="assets/icons/drops.svg" class="inline-icon">`;
+                else if (notif.type === 'pause') iconHtml = `<img src="assets/icons/hourglass.svg" class="inline-icon">`;
 
                 card.innerHTML = `
                     <div class="notif-title"><span style="display:flex; align-items:center;">${iconHtml} ${finalTitle}</span><span class="notif-time">${timeStr}</span></div>
@@ -288,7 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             const duplicateKey = Array.from(historyMap.keys()).find(key => {
                                 const localN = historyMap.get(key);
                                 const isSameText = localN.text === serverN.text;
-                                const isCloseInTime = Math.abs(localN.timestamp - serverN.timestamp) < (10 * 60 * 1000);
+                                // Збільшуємо до 24 годин, щоб зловити хмарні пуші, які запізнилися через нічний сон пристрою
+                                const isCloseInTime = Math.abs(localN.timestamp - serverN.timestamp) < (24 * 60 * 60 * 1000);
                                 return isSameText && isCloseInTime;
                             });
 
@@ -1010,11 +1012,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                 navigator.serviceWorker.controller.postMessage({
                     type: 'SCHEDULE_NOTIFICATION',
-                    title: 'Нагадування',
+                    title: uiText.notif_type_pause, // СТАЛО ТАК
                     body: uiText.notif_timer_done,
                     text: uiText.notif_timer_done, // Додано для захисту від втрати тексту
                     timestamp: endTimeMs, 
-                    tag: 'auto-pause-' + med.id + '_' + Math.random().toString(36).substr(2, 5),
+                    tag: 'auto-pause-' + med.id,
                     isPause: true // Маркер для повної ізоляції
                 });
                 console.log(`[Triggers API] Заплановано офлайн-пуш паузи для "${med.name}" через ${pauseMins} хв.`);
@@ -1029,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 subscription: sub,
-                                title: 'Нагадування',
+                                title: uiText.notif_type_pause, // СТАЛО ТАК
                                 body: uiText.notif_timer_done,
                                 delayMs: pauseMins * 60 * 1000,
                                 soundEnabled: localStorage.getItem('appSoundEnabled') !== 'false'
@@ -1375,7 +1377,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     med.scheduleTimes.forEach(timeStr => {
                         const [h, m] = timeStr.split(':').map(Number); tDate.setHours(h, m, 0, 0);
                         const pushTime = tDate.getTime() - (offsetMins * 60 * 1000);
-                        if (pushTime > now.getTime()) queue.push({ timestamp: pushTime, type: 'reminder', title: uiText.notif_type_rem, body: `${uiText.time_to_drop} ${med.name}` });
+                        const timeFmt = new Date(pushTime).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
+                        if (pushTime > now.getTime()) queue.push({ timestamp: pushTime, type: 'reminder', title: uiText.notif_type_rem, body: `${uiText.time_to_drop} ${med.name} [${timeFmt}]` });
                     });
                 }
             } else if (med.scheduleType === 'interval' && med.scheduleValue) {
@@ -1384,7 +1387,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const lastD = medDrops[medDrops.length - 1];
                     const nextT = new Date(new Date(`${lastD.date}T${lastD.time}`).getTime() + parseFloat(med.scheduleValue) * 60 * 60 * 1000);
                     const pushTime = nextT.getTime() - (offsetMins * 60 * 1000);
-                    if (pushTime > now.getTime()) queue.push({ timestamp: pushTime, type: 'reminder', title: uiText.notif_type_rem, body: `${uiText.time_to_drop} ${med.name}` });
+                    const timeFmtInt = new Date(pushTime).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
+                    if (pushTime > now.getTime()) queue.push({ timestamp: pushTime, type: 'reminder', title: uiText.notif_type_rem, body: `${uiText.time_to_drop} ${med.name} [${timeFmtInt}]` });
                 }
             }
         });
@@ -1393,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (endTimeStr) {
             const endTime = parseInt(endTimeStr, 10);
             // ЗМІНЕНО: type тепер 'pause' замість 'reminder', і додано поле text
-            if (endTime > now.getTime()) queue.push({ timestamp: endTime, type: 'pause', title: uiText.notif_type_rem, body: uiText.notif_timer_done, text: uiText.notif_timer_done, isPause: true });
+            if (endTime > now.getTime()) queue.push({ timestamp: endTime, type: 'pause', title: uiText.notif_type_pause, body: uiText.notif_timer_done, text: uiText.notif_timer_done, isPause: true });
         }
         return queue;
     }
@@ -1417,7 +1421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             queue.forEach(item => {
                 // Витягуємо безпечну назву для тегу (тільки літери та цифри), щоб уникнути колізій
                 const safeName = item.body ? item.body.replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').slice(-15) : 'drop';
-                const deterministicTag = `auto-${item.type}-${item.timestamp}-${safeName}_${Math.random().toString(36).substr(2, 5)}`;
+                const deterministicTag = `auto-${item.type}-${item.timestamp}-${safeName}`;
 
                 // Відправляємо кожну подію з розкладу в наш sw.js
                 navigator.serviceWorker.controller.postMessage({

@@ -54,16 +54,13 @@ const pushJobSchema = new mongoose.Schema({
 const PushJob = mongoose.model('PushJob', pushJobSchema);
 
 // --- ДОПОМІЖНА ФУНКЦІЯ ДЛЯ СТВОРЕННЯ ОБ'ЄКТА ІСТОРІЇ ---
-function createHistoryItem(title, body) {
+function createHistoryItem(title, body, type = 'reminder', timestamp = Date.now()) {
     let titleKey = 'notif_type_rem';
-    let type = 'reminder';
     
-    if (title.toLowerCase().includes('лікар') || title.toLowerCase().includes('doctor')) {
+    if (type === 'doctor') {
         titleKey = 'notif_type_doc';
-        type = 'doctor';
-    } else if (title.toLowerCase().includes('термін') || title.toLowerCase().includes('expir')) {
+    } else if (type === 'expiry') {
         titleKey = 'notif_type_exp';
-        type = 'expiry';
     }
     
     return {
@@ -73,7 +70,7 @@ function createHistoryItem(title, body) {
         titleKey: titleKey,
         text: body,
         isRead: false,
-        timestamp: Date.now()
+        timestamp: timestamp
     };
 }
 
@@ -218,8 +215,9 @@ app.post('/api/pause-push', async (req, res) => {
             body,
             playSound: soundEnabled !== false,
             tag: 'cloud_pause_' + Date.now(),
-            type: 'pause',       // === ДОДАНО: Щоб вкладка впізнала паузу ===
-            data: { url: '/' }   // === ДОДАНО: Щоб по кліку відкривався додаток ===
+            type: 'pause',
+            timestamp: Date.now(), // ДОДАНО: Час створення для перевірки в sw.js
+            data: { url: '/' }
         });
         webpush.sendNotification(subscription, payload, pushOptions)
             .then(() => console.log(`[Хмарна пауза] Відправлено: ${body}`))
@@ -255,12 +253,19 @@ cron.schedule('* * * * *', async () => {
             
             // 3. Відправляємо актуальні пуші і безпечно дописуємо їх в історію
             for (const job of activeJobs) {
-                const payload = JSON.stringify({ title: job.title, body: job.body, playSound: user.soundEnabled });
+                const payload = JSON.stringify({ 
+                    title: job.title, 
+                    body: job.body, 
+                    playSound: user.soundEnabled,
+                    tag: job.tag,             // ДОДАНО: Передаємо унікальний тег для Android
+                    type: job.type,           // ДОДАНО: Передаємо тип для правильних іконок
+                    timestamp: job.timestamp  // ДОДАНО: Передаємо оригінальний час для антиспам-щита
+                });
                 
                 webpush.sendNotification(user.subscription, payload, pushOptions)
                     .then(async () => {
                         console.log(`[Push Відправлено з MongoDB] ${job.title}`);
-                        const newNotif = createHistoryItem(job.title, job.body);
+                        const newNotif = createHistoryItem(job.title, job.body, job.type, job.timestamp);
                         
                         // Використовуємо $push, щоб атомарно додати запис, не перезаписуючи весь документ!
                         await PushJob.updateOne(

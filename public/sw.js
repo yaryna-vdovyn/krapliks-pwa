@@ -1,4 +1,4 @@
-const CACHE_NAME = 'krapliks-cache-v42'; // Оновлено
+const CACHE_NAME = 'krapliks-cache-v44'; // Оновлено
 
 // Список всіх файлів та іконок для офлайн-режиму
 const urlsToCache = [
@@ -64,7 +64,7 @@ const recentlyShown = new Map();
 function isDuplicateAndLock(text, timestamp) {
     const now = Date.now();
     // 1. У ключі залишаємо ВИКЛЮЧНО чисту назву ліків (без жодних хвилин та timeBucket!)
-    const cleanText = (text || '').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').toLowerCase().slice(0, 15);
+    const cleanText = (text || '').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').toLowerCase().slice(0, 50);
     
     if (recentlyShown.has(cleanText)) {
         const lastTime = recentlyShown.get(cleanText);
@@ -104,7 +104,9 @@ self.addEventListener('push', function(event) {
         
         if (isDuplicateAndLock(data.body || data.title, data.timestamp)) return;
         
-        const unifiedTag = data.tag || 'krapliks_cloud';
+        // Створюємо 100% унікальний тег, якщо сервер його не передав (щоб не було склеювання різних пушів)
+        const safeBodyText = (data.body || '').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').slice(-15);
+        const unifiedTag = data.tag || `cloud_${data.timestamp || Date.now()}_${safeBodyText}`;
 
         // Шукаємо правильний тип
         let detectedType = 'reminder';
@@ -130,8 +132,8 @@ self.addEventListener('push', function(event) {
             vibrate: [200, 100, 200, 100, 200, 100, 200],
             silent: data.playSound === false, 
             requireInteraction: true,
-            tag: data.tag || 'krapliks_cloud',
-            renotify: false, // ВИПРАВЛЕНО: Забороняємо ОС повторно пікати при оновленні вікна
+            tag: unifiedTag, // Тут тепер змінна unifiedTag, а не жорсткий текст
+            renotify: true, // ВИПРАВЛЕНО: Дозволяємо системі видавати звук завжди!
             data: { url: '/' }
         };
 
@@ -224,7 +226,7 @@ self.addEventListener('message', event => {
             badge: '/images/badge-icon.png',
             vibrate: [200, 100, 200, 100, 200, 100, 200],
             tag: uniqueId,
-            renotify: false, 
+            renotify: true, // ВИПРАВЛЕНО: Змінюємо з false на true
             requireInteraction: true,
             data: { url: '/' }
         };
@@ -306,7 +308,7 @@ function saveToIndexedDB(data) {
                 const isDuplicate = allItems.some(item => {
                     const cleanExisting = (item.text || item.titleText || '').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄ]/g, '').toLowerCase();
                     const timeDiff = Math.abs((item.timestamp || 0) - newTime);
-                    return cleanExisting === cleanNewText && timeDiff < 180000;
+                    return cleanExisting === cleanNewText && timeDiff < 43200000; // Збільшено до 12 годин
                 });
 
                 if (isDuplicate) {
