@@ -40,7 +40,18 @@ const pushOptions = {
 
 // --- 1. ПІДКЛЮЧЕННЯ ДО MONGODB ---
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ Успішно підключено до бази даних MongoDB!'))
+    .then(async () => {
+        console.log('✅ Успішно підключено до бази даних MongoDB!');
+        
+        // === ОДНОРАЗОВИЙ ФІКС ДЛЯ БАЗИ ДАНИХ ===
+        try {
+            await PushJob.collection.dropIndex('endpoint_1');
+            console.log('🧹 Старий унікальний індекс "endpoint_1" успішно знищено!');
+        } catch (err) {
+            // Якщо індексу вже немає, MongoDB видасть тиху помилку, ми її просто ігноруємо
+        }
+        // ========================================
+    })
     .catch(err => console.error('❌ Помилка підключення до MongoDB:', err));
 
 // --- 2. СХЕМА ДАНИХ КОРИСТУВАЧА У ХМАРІ ---
