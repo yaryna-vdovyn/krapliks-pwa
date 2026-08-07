@@ -133,6 +133,9 @@
                     <button class="settings-menu-btn" data-open-modal="modal-doctor">
                         <img src="assets/icons/doctor.svg" class="menu-icon" alt="🩺"> Візит до лікаря
                     </button>
+                    <button class="settings-menu-btn" data-open-modal="modal-telegram">
+                        <img src="assets/icons/telegram.svg" class="menu-icon" alt="TG"> Нагадування у Telegram
+                    </button>
                     <button class="settings-menu-btn" data-open-modal="modal-data">
                         <img src="assets/icons/data.svg" class="menu-icon" alt="💾"> Дані (Експорт/Імпорт)
                     </button>
@@ -398,7 +401,7 @@
             <div class="modal-body-scroll">
                 <form id="feedback-form" action="https://formspree.io/f/mjgqbblb" method="POST">
                     <div class="date-input-wrapper">
-                        <label>Ваш Email (обов'язково):</label>
+                        <label>Ваш Email:</label>
                         <input type="email" name="email" class="med-input" required placeholder="email@example.com">
                     </div>
                     <div class="date-input-wrapper">
@@ -417,6 +420,26 @@
                     </div>
                     <button type="submit" class="btn-secondary">Відправити</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-telegram" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><img src="assets/icons/telegram.svg" class="inline-icon" alt="TG"> Telegram</h3>
+                <button class="icon-btn close-modal">✖</button>
+            </div>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px; text-align: center;">
+                Отримуйте всі сповіщення безпосередньо у ваш Telegram. Це гарантує максимальну надійність та вчасну доставку повідомлень.
+            </p>
+            <button id="btn-generate-tg" class="btn-secondary">Згенерувати код підключення</button>
+            
+            <div id="tg-code-display" style="display: none; margin-top: 20px; text-align: center; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; border: 1px solid var(--primary-color);">
+                <span style="font-size: 13px; color: var(--text-muted);">Ваш код підключення:</span><br>
+                <span id="tg-code-value" style="font-size: 32px; font-weight: 700; color: var(--text-main); letter-spacing: 4px; display: block; margin: 10px 0;"></span>
+                <span style="font-size: 13px; color: var(--text-muted);">Надішліть цей код боту:</span><br>
+                <a id="tg-bot-link" href="#" target="_blank" style="display: inline-block; margin-top: 8px; color: var(--primary-color); font-weight: 600; text-decoration: none;">Відкрити Telegram</a>
             </div>
         </div>
     </div>

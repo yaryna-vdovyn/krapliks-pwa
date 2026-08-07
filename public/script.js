@@ -26,6 +26,13 @@ function translateEyeValue(eyeVal) {
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- ГЕНЕРАЦІЯ УНІКАЛЬНОГО ID КОРИСТУВАЧА ---
+    let userId = localStorage.getItem('krapliks_userId');
+    if (!userId) {
+        userId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        localStorage.setItem('krapliks_userId', userId);
+    }
+    
     let tempVisits = JSON.parse(localStorage.getItem('appDoctorVisits')) || [];
     let isMigrated = false;
     tempVisits = tempVisits.map(v => {
@@ -253,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         try {
                             const reg = await navigator.serviceWorker.ready; 
                             const sub = await reg.pushManager.getSubscription();
-                            if (sub) fetch('/api/notifications/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub, id: notif.id }) });
+                            if (sub) fetch('/api/notifications/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: userId, subscription: sub, id: notif.id }) });
                         } catch(e){}
                     }
                 });
@@ -270,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const reg = await navigator.serviceWorker.ready;
                 const sub = await reg.pushManager.getSubscription();
                 if (sub) {
-                    const res = await fetch('/api/notifications/get', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) });
+                    const res = await fetch('/api/notifications/get', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: userId, subscription: sub }) });
                     if (res.ok) {
                         const serverNotifs = await res.json();
                         const localNotifs = JSON.parse(localStorage.getItem('appNotifications')) || [];
@@ -334,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
-            if (sub) fetch('/api/notifications/read-all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) });
+            if (sub) fetch('/api/notifications/read-all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: userId, subscription: sub }) });
         } catch(e){}
     });
 
@@ -348,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
-            if (sub) fetch('/api/notifications/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub }) });
+            if (sub) fetch('/api/notifications/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: userId, subscription: sub }) });
         } catch(e){}
     });
 
@@ -1030,6 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
+                                userId: userId, // <-- ДОДАНО ТУТ
                                 subscription: sub,
                                 title: uiText.notif_type_pause, // СТАЛО ТАК
                                 body: uiText.notif_timer_done,
@@ -1441,7 +1449,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ваша стандартна відправка черги на сервер Render (але вже без пауз)
         await fetch('/api/sync-pushes', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription: sub, queue: serverQueue, soundEnabled, localHistory })
+            body: JSON.stringify({ userId: userId, subscription: sub, queue: serverQueue, soundEnabled, localHistory })
         });
     } catch (e) {
         console.warn('[Sync] Помилка відправки на Render. Реєструємо Background Sync...', e);
@@ -1500,7 +1508,55 @@ requestPersistentStorage();
 
     setTimeout(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, 50);
 
-// --- УПРАВЛІННЯ ІНДИКАТОРОМ МЕРЕЖІ ---
+// --- TELEGRAM ІНТЕГРАЦІЯ ---
+    const btnGenerateTg = document.getElementById('btn-generate-tg');
+    if (btnGenerateTg) {
+        btnGenerateTg.addEventListener('click', async () => {
+            const codeDisplay = document.getElementById('tg-code-display');
+            const codeValue = document.getElementById('tg-code-value');
+            const botLink = document.getElementById('tg-bot-link');
+            
+            try {
+                btnGenerateTg.disabled = true;
+                btnGenerateTg.innerText = 'Генерую...';
+                
+                const reg = await navigator.serviceWorker.ready; 
+                const sub = await reg.pushManager.getSubscription();
+                
+                if (!sub) {
+                    alert('Спочатку дозвольте звичайні сповіщення у браузері, щоб ми могли ідентифікувати ваш пристрій!');
+                    return;
+                }
+                
+                const res = await fetch('/api/telegram/generate-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, subscription: sub })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    codeValue.innerText = data.code;
+                    
+                    if(data.botUsername) {
+                        botLink.href = `https://t.me/${data.botUsername}`;
+                        botLink.innerText = `@${data.botUsername}`;
+                    }
+                    
+                    codeDisplay.style.display = 'block';
+                    btnGenerateTg.innerText = 'Згенерувати новий код';
+                } else {
+                    alert('Помилка генерації коду. Переконайтесь, що у вас є підключення до сервера.');
+                }
+            } catch (e) {
+                alert('Помилка з\'єднання із сервером.');
+            } finally {
+                btnGenerateTg.disabled = false;
+            }
+        });
+    }
+    
+    // --- УПРАВЛІННЯ ІНДИКАТОРОМ МЕРЕЖІ ---
     const offlineBanner = document.getElementById('offline-banner');
     let offlineTimer = null; // Змінна для зберігання таймера
 

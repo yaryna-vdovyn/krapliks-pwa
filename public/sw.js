@@ -1,4 +1,4 @@
-const CACHE_NAME = 'krapliks-cache-v44'; // Оновлено
+const CACHE_NAME = 'krapliks-cache-v47'; // Оновлено
 
 // Список всіх файлів та іконок для офлайн-режиму
 const urlsToCache = [
@@ -24,7 +24,8 @@ const urlsToCache = [
     '/assets/icons/feedback.svg',
     '/assets/icons/warning.svg',
     '/assets/icons/stats.svg',
-    '/assets/icons/gripper.svg'
+    '/assets/icons/gripper.svg',
+    '/assets/icons/telegram.svg'
 ];
 
 self.addEventListener('install', event => {
