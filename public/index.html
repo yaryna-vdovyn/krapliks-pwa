@@ -23,47 +23,43 @@
             <header class="app-header">
                 <h1>Krapliks</h1>
             </header>
-
             <main class="content">
                 <div id="doctor-reminder" class="doctor-reminder" style="display: none;"></div>
                 
                 <div class="quick-add-section">
                     <div class="eye-selector">
                         <input type="radio" id="eye-left" name="eye" value="left">
-                        <label for="eye-left">Ліве</label>
+                        <label for="eye-left" data-i18n="eye_left">Ліве</label>
                         <input type="radio" id="eye-both" name="eye" value="both" checked>
-                        <label for="eye-both">Обидва</label>
+                        <label for="eye-both" data-i18n="eye_both">Обидва</label>
                         <input type="radio" id="eye-right" name="eye" value="right">
-                        <label for="eye-right">Праве</label>
+                        <label for="eye-right" data-i18n="eye_right">Праве</label>
                     </div>
-
                     <div class="main-btn-wrapper">
                         <button id="btn-drop" class="btn-main-action">
                             <div class="btn-inner-circle">
                                 <img src="assets/icons/drops.svg" alt="Drop" class="btn-icon">
-                                <span class="btn-text">Закапати</span>
+                                <span class="btn-text" data-i18n="btn_drop">Закапати</span>
                             </div>
                         </button>
                     </div>
-
                     <div id="timer-display" class="timer-display" style="display: none;">
-                        <img src="assets/icons/hourglass.svg" class="inline-icon" alt="⏳"> Зачекайте <span id="timer-time">10:00</span> перед наступним
+                        <img src="assets/icons/hourglass.svg" class="inline-icon" alt="⏳"> 
+                        <span data-i18n="wait">Зачекайте</span> <span id="timer-time">10:00</span> <span data-i18n="before_next">перед наступним</span>
                     </div>
-                    <p id="last-action-text" class="last-action-text">Сьогодні ще не закапували</p>
+                    <p id="last-action-text" class="last-action-text" data-i18n="today_no_drops">Сьогодні ще не закапували</p>
                     
                     <div id="today-stats" class="today-stats-container"></div>
                 </div>
-
                 <div class="medications-list">
-                    <h2>Мої препарати</h2>
+                    <h2 data-i18n="my_meds">Мої препарати</h2>
                     <div id="medications-container" class="medications-vertical-list"></div>
                 </div>
             </main>
         </section>
-
         <section id="screen-calendar" class="screen">
             <header class="app-header">
-                <h1>Календар</h1>
+                <h1 data-i18n="nav_calendar">Календар</h1>
             </header>
             <main class="content">
                 <div class="calendar-card">
@@ -73,22 +69,21 @@
                         <button id="cal-next-month" class="icon-btn">&gt;</button>
                     </div>
                     <div class="calendar-legend">
-                        <div class="legend-item"><span class="dot dot-doctor"></span> Візит до лікаря</div>
-                        <div class="legend-item"><span class="dot dot-expiry"></span> Закінчення терміну</div>
+                        <div class="legend-item"><span class="dot dot-doctor"></span> <span data-i18n="legend_doc">Візит до лікаря</span></div>
+                        <div class="legend-item"><span class="dot dot-expiry"></span> <span data-i18n="legend_exp">Закінчення терміну</span></div>
                     </div>
                     <div class="calendar-weekdays" id="calendar-weekdays">
-                        <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span>
+                        <span data-i18n="wd_0">Пн</span><span data-i18n="wd_1">Вт</span><span data-i18n="wd_2">Ср</span><span data-i18n="wd_3">Чт</span><span data-i18n="wd_4">Пт</span><span data-i18n="wd_5">Сб</span><span data-i18n="wd_6">Нд</span>
                     </div>
                     <div id="calendar-grid" class="calendar-grid"></div>
                 </div>
-
                 <div class="stats-section">
                     <div class="stats-header">
-                        <h3><img src="assets/icons/stats.svg" class="inline-icon" alt="📊"> Статистика</h3>
+                        <h3><img src="assets/icons/stats.svg" class="inline-icon" alt="📊"> <span data-i18n="stats">Статистика</span></h3>
                         <select id="stats-range-selector" class="med-input stats-select">
-                            <option value="week" selected>Тиждень</option>
-                            <option value="month">Місяць</option>
-                            <option value="year">Рік</option>
+                            <option value="week" selected data-i18n="stat_week">Тиждень</option>
+                            <option value="month" data-i18n="stat_month">Місяць</option>
+                            <option value="year" data-i18n="stat_year">Рік</option>
                         </select>
                     </div>
                     
@@ -98,87 +93,100 @@
                         <button id="stats-next" class="icon-btn">&gt;</button>
                     </div>
                     
-                    <div id="stats-chart-container" class="stats-chart-container">
-                        </div>
+                    <div id="stats-chart-container" class="stats-chart-container"></div>
                     
                     <button id="btn-download-pdf" class="btn-secondary" style="margin-top: 16px; background-color: var(--accent-color); color: var(--bg-color); display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <img src="assets/icons/import.svg" class="inline-icon" alt="⬇️" style="margin: 0;"> Завантажити звіт
+                        <img src="assets/icons/import.svg" class="inline-icon" alt="⬇️" style="margin: 0;"> <span data-i18n="btn_download">Завантажити звіт</span>
                     </button>
                 </div>
             </main>
         </section>
-
         <section id="screen-notifications" class="screen">
             <header class="app-header">
-                <h1>Сповіщення</h1>
+                <h1 data-i18n="nav_notifications">Сповіщення</h1>
             </header>
             <main class="content">
                 <div class="notif-controls" style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <button class="btn-small btn-outline" data-open-modal="modal-manage-notifs">Керування</button>
-                    <button id="btn-read-all" class="btn-small btn-outline">Прочитати всі</button>
+                    <button class="btn-small btn-outline" data-open-modal="modal-manage-notifs" data-i18n="btn_manage">Керування</button>
+                    <button id="btn-read-all" class="btn-small btn-outline" data-i18n="btn_read_all">Прочитати всі</button>
                 </div>
                 <div id="notifications-list" class="notifications-list"></div>
             </main>
         </section>
-
         <section id="screen-settings" class="screen">
             <header class="app-header">
-                <h1>Налаштування</h1>
+                <h1 data-i18n="nav_settings">Налаштування</h1>
             </header>
             <main class="content">
                 <div class="settings-menu">
                     <button class="settings-menu-btn" data-open-modal="modal-add-med">
-                        <img src="assets/icons/add.svg" class="menu-icon" alt="+"> Додати новий препарат
+                        <img src="assets/icons/add.svg" class="menu-icon" alt="+"> <span data-i18n="menu_add">Додати новий препарат</span>
                     </button>
                     <button class="settings-menu-btn" data-open-modal="modal-doctor">
-                        <img src="assets/icons/doctor.svg" class="menu-icon" alt="🩺"> Візит до лікаря
+                        <img src="assets/icons/doctor.svg" class="menu-icon" alt="🩺"> <span data-i18n="menu_doc">Візит до лікаря</span>
                     </button>
                     <button class="settings-menu-btn" data-open-modal="modal-telegram">
-                        <img src="assets/icons/telegram.svg" class="menu-icon" alt="TG"> Нагадування у Telegram
+                        <img src="assets/icons/telegram.svg" class="menu-icon" alt="TG"> <span data-i18n="menu_tg">Нагадування у Telegram</span>
                     </button>
                     <button class="settings-menu-btn" data-open-modal="modal-data">
-                        <img src="assets/icons/data.svg" class="menu-icon" alt="💾"> Дані (Експорт/Імпорт)
+                        <img src="assets/icons/data.svg" class="menu-icon" alt="💾"> <span data-i18n="menu_data">Управління даними</span>
+                    </button>
+                    <button class="settings-menu-btn" data-open-modal="modal-about">
+                        <img src="assets/icons/info.svg" class="menu-icon" alt="ℹ️"> <span data-i18n="menu_about">Інформація про додаток</span>
                     </button>
                     <button class="settings-menu-btn" data-open-modal="modal-feedback">
-                        <img src="assets/icons/feedback.svg" class="menu-icon" alt="📝"> Залишити відгук
+                        <img src="assets/icons/feedback.svg" class="menu-icon" alt="📝"> <span data-i18n="menu_fb">Залишити відгук</span>
                     </button>
+                    
+                    <!-- НОВИЙ БЛОК: СЕЛЕКТОР МОВИ -->
+                    <div class="settings-menu-btn" style="cursor: default; justify-content: space-between; padding: 11px 20px; width: 100%; box-sizing: border-box;">
+                        <div style="display: flex; align-items: center; min-width: 0;">
+                            <img src="assets/icons/language.svg" class="menu-icon" alt="Lang" style="flex-shrink: 0;">
+                            <span data-i18n="lang_title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Мова</span>
+                        </div>
+                        <select id="app-language-selector" class="med-input lang-select">
+                            <option value="uk">Українська</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
                 </div>
             </main>
         </section>
-
         <div id="offline-banner" class="offline-banner hidden">
-                <img src="assets/icons/warning.svg" class="inline-icon banner-icon" alt="Warning">
-                <span>Немає зв'язку. Будь-які внесені зміни запрацюють після підключення до інтернету.</span>
+            <img src="assets/icons/warning.svg" class="inline-icon banner-icon" alt="Warning">
+            <span data-i18n="offline_warn">Немає зв'язку. Будь-які внесені зміни запрацюють після підключення до інтернету.</span>
         </div>
-
         <nav class="bottom-nav">
             <a href="#" class="nav-item active" data-target="screen-home">
                 <div class="nav-icon-wrapper">
                     <div class="nav-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2.5C12.3975 2.5 12.7394 2.61681 13.0439 2.85254L13.0469 2.85449L19.7969 7.99805L19.8018 8.00098C20.0175 8.1618 20.1877 8.36615 20.3135 8.62109C20.439 8.8756 20.5006 9.14274 20.5 9.42773V19.7139C20.5 20.2112 20.3313 20.624 19.9824 20.9785C19.6338 21.3326 19.2321 21.5005 18.751 21.5H14.25C14.06 21.5 13.9231 21.44 13.8057 21.3203C13.7168 21.2296 13.6598 21.1263 13.6367 20.9961L13.625 20.8564V14.6426H10.375V20.8574C10.3749 21.0574 10.3131 21.2007 10.1943 21.3213C10.0761 21.4413 9.93943 21.5005 9.75098 21.5H5.25C4.76736 21.5 4.36535 21.3318 4.01758 20.9785C3.66962 20.625 3.50064 20.2125 3.5 19.7139V9.42871C3.5 9.14334 3.56275 8.87593 3.68848 8.62109C3.81442 8.36591 3.98408 8.16173 4.19922 8.00098L4.20312 7.99805L10.9531 2.85449L10.9561 2.85254C11.2606 2.61681 11.6025 2.5 12 2.5ZM19.25 9.18066L19.0527 9.03125L12.3027 3.8877L12 3.65723L11.6973 3.8877L4.94727 9.03125L4.75 9.18066V20.2139H9.125V14C9.125 13.8001 9.18663 13.6577 9.30469 13.5381C9.39383 13.4478 9.49363 13.3908 9.61816 13.3682L9.75098 13.3574H14.25C14.44 13.3574 14.577 13.417 14.6953 13.5371C14.814 13.6577 14.8755 13.8004 14.875 13.999V20.2139H19.25V9.18066Z" fill="#D4A373" stroke="#D4A373"/>
+                        <path d="M12 2.5C12.3975 2.5 12.7394 2.61681 13.0439 2.85254L13.0469 2.85449L19.7969 7.99805L19.8018 8.00098C20.0175 8.1618 20.1877 8.36615 20.3135 8.62109C20.439 8.8756 20.5006 9.14274 20.5 9.42773V19.7139C20.5 20.2112 20.3313 20.624 19.9824 20.9785C19.6338 21.3326 19.2321 21.5005 18.751 21.5H14.25C14.06 21.5 13.9231 21.44 13.8057 21.3203C13.7168 21.2296 13.6598 21.1263 13.6367 20.9961L13.625 20.8564V14.6426H10.375V20.8574C10.3749 21.0574 10.3131 21.2007 10.1943 21.3213C10.0761 21.4413 9.93943 21.5005 9.75098 21.5H5.25C4.76736 21.5 4.36535 21.3318 4.01758 20.9785C3.66962 20.625 3.50064 20.2125 3.5 19.7139V9.42871C3.5 9.14334 3.56275 8.87593 3.68848 8.62109C3.81442 8.36591 3.98408 8.16173 4.19922 8.00098L4.20312 7.99805L10.9531 2.85449L10.9561 2.85254C11.2606 2.61681 11.6025 2.5 12 2.5ZM19.25 9.18066L19.0527 9.03125L12.3027 3.8877L12 3.65723L11.6973 3.8877L4.94727 9.03125L4.75 9.18066V20.2139H9.125V14C9.125 13.8001 9.18663 13.6577 9.30469 13.5381C9.39383 13.4478 9.49363 13.3908 9.61816 13.3682L9.75098 13.3574H14.25C14.44 13.3574 14.577 13.417 14.6953 13.5371C14.814 13.6577 14.8755 13.8004 14.875 13.999V20.2139H19.25V9.18066Z" fill="currentColor" stroke="currentColor"/>
                         </svg>
                     </div>
+                    <span class="nav-label" data-i18n="nav_home">Головна</span>
                 </div>
             </a>
             <a href="#" class="nav-item" data-target="screen-calendar">
                 <div class="nav-icon-wrapper">
                     <div class="nav-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5.25 4.72266H18.75C19.2161 4.72266 19.6615 4.90586 19.9893 5.22949C20.3168 5.55296 20.5 5.99057 20.5 6.44531V8.16699H3.5V6.44531C3.5 5.99057 3.68323 5.55296 4.01074 5.22949C4.33846 4.90586 4.78392 4.72266 5.25 4.72266Z" fill="#D4A373" stroke="#D4A373"/>
-                        <path d="M18.75 4.22222H16.5H7.5H5.25C4.65326 4.22222 4.08097 4.45635 3.65901 4.8731C3.23705 5.28984 3 5.85507 3 6.44444V8.66667H21V6.44444C21 5.85507 20.7629 5.28984 20.341 4.8731C19.919 4.45635 19.3467 4.22222 18.75 4.22222Z" fill="#D4A373"/>
-                        <path d="M16.5 4.22222H18.75C19.3467 4.22222 19.919 4.45635 20.341 4.8731C20.7629 5.28984 21 5.85507 21 6.44444V8.66667H3V6.44444C3 5.85507 3.23705 5.28984 3.65901 4.8731C4.08097 4.45635 4.65326 4.22222 5.25 4.22222H7.5M16.5 4.22222V2M16.5 4.22222H7.5M7.5 4.22222V2M3 9.22222V19.7778C3 20.3671 3.23705 20.9324 3.65901 21.3491C4.08097 21.7659 4.65326 22 5.25 22H18.75C19.3467 22 19.919 21.7659 20.341 21.3491C20.7629 20.9324 21 20.3671 21 19.7778V9.22222" stroke="#D4A373" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M5.25 4.72266H18.75C19.2161 4.72266 19.6615 4.90586 19.9893 5.22949C20.3168 5.55296 20.5 5.99057 20.5 6.44531V8.16699H3.5V6.44531C3.5 5.99057 3.68323 5.55296 4.01074 5.22949C4.33846 4.90586 4.78392 4.72266 5.25 4.72266Z" fill="currentColor" stroke="currentColor"/>
+                        <path d="M18.75 4.22222H16.5H7.5H5.25C4.65326 4.22222 4.08097 4.45635 3.65901 4.8731C3.23705 5.28984 3 5.85507 3 6.44444V8.66667H21V6.44444C21 5.85507 20.7629 5.28984 20.341 4.8731C19.919 4.45635 19.3467 4.22222 18.75 4.22222Z" fill="currentColor"/>
+                        <path d="M16.5 4.22222H18.75C19.3467 4.22222 19.919 4.45635 20.341 4.8731C20.7629 5.28984 21 5.85507 21 6.44444V8.66667H3V6.44444C3 5.85507 3.23705 5.28984 3.65901 4.8731C4.08097 4.45635 4.65326 4.22222 5.25 4.22222H7.5M16.5 4.22222V2M16.5 4.22222H7.5M7.5 4.22222V2M3 9.22222V19.7778C3 20.3671 3.23705 20.9324 3.65901 21.3491C4.08097 21.7659 4.65326 22 5.25 22H18.75C19.3467 22 19.919 21.7659 20.341 21.3491C20.7629 20.9324 21 20.3671 21 19.7778V9.22222" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </div>
+                    <span class="nav-label" data-i18n="nav_calendar">Календар</span>
                 </div>
             </a>
             <a href="#" class="nav-item" data-target="screen-notifications">
                 <div class="nav-icon-wrapper">
                     <div class="nav-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2.5C12.2988 2.5 12.5911 2.58886 12.8389 2.75586C13.0866 2.92285 13.2786 3.16062 13.3906 3.4375L13.4834 3.66602L13.7217 3.73145C15.095 4.10862 16.3066 4.92695 17.1699 6.05957C18.0331 7.19215 18.5004 8.57701 18.5 10.001V14.8486L20.416 17.7227C20.4662 17.7978 20.4946 17.8853 20.499 17.9756C20.5034 18.066 20.4831 18.1565 20.4404 18.2363C20.3977 18.3159 20.3343 18.3823 20.2568 18.4287C20.1792 18.4752 20.0905 18.5 20 18.5H15.0322L14.9697 18.9287C14.8665 19.6425 14.5101 20.2954 13.9648 20.7676C13.4194 21.2398 12.7215 21.5 12 21.5C11.2785 21.5 10.5806 21.2398 10.0352 20.7676C9.48995 20.2954 9.13349 19.6425 9.03027 18.9287L8.96777 18.5H4C3.90949 18.5 3.8208 18.4752 3.74316 18.4287C3.66567 18.3823 3.60226 18.3159 3.55957 18.2363C3.51687 18.1565 3.49659 18.066 3.50098 17.9756C3.50432 17.9078 3.52125 17.8418 3.55078 17.7812L3.58398 17.7227L5.5 14.8486V10.001C5.50003 7.0083 7.52418 4.48635 10.2783 3.73242L10.5166 3.66699L10.6094 3.4375C10.7214 3.16062 10.9134 2.92285 11.1611 2.75586C11.4089 2.58886 11.7012 2.5 12 2.5ZM10.1143 19.166C10.252 19.5562 10.5079 19.8948 10.8457 20.1338C11.1834 20.3726 11.5874 20.501 12.001 20.501C12.4144 20.5009 12.8177 20.3725 13.1553 20.1338C13.4931 19.8948 13.749 19.5562 13.8867 19.166L14.1221 18.5H9.87891L10.1143 19.166ZM12 4.50195C10.5414 4.50195 9.14275 5.08106 8.11133 6.1123C7.0799 7.14364 6.50002 8.54243 6.5 10.001V15.001C6.49995 15.0996 6.47074 15.1963 6.41602 15.2783L5.45312 16.7227L4.93457 17.5H19.0645L18.5459 16.7227L17.583 15.2783C17.5286 15.1962 17.4998 15.0995 17.5 15.001V10.001C17.5 8.54243 16.9201 7.14364 15.8887 6.1123C14.8573 5.08106 13.4586 4.50195 12 4.50195Z" fill="#D4A373" stroke="#D4A373"/>
+                        <path d="M12 2.5C12.2988 2.5 12.5911 2.58886 12.8389 2.75586C13.0866 2.92285 13.2786 3.16062 13.3906 3.4375L13.4834 3.66602L13.7217 3.73145C15.095 4.10862 16.3066 4.92695 17.1699 6.05957C18.0331 7.19215 18.5004 8.57701 18.5 10.001V14.8486L20.416 17.7227C20.4662 17.7978 20.4946 17.8853 20.499 17.9756C20.5034 18.066 20.4831 18.1565 20.4404 18.2363C20.3977 18.3159 20.3343 18.3823 20.2568 18.4287C20.1792 18.4752 20.0905 18.5 20 18.5H15.0322L14.9697 18.9287C14.8665 19.6425 14.5101 20.2954 13.9648 20.7676C13.4194 21.2398 12.7215 21.5 12 21.5C11.2785 21.5 10.5806 21.2398 10.0352 20.7676C9.48995 20.2954 9.13349 19.6425 9.03027 18.9287L8.96777 18.5H4C3.90949 18.5 3.8208 18.4752 3.74316 18.4287C3.66567 18.3823 3.60226 18.3159 3.55957 18.2363C3.51687 18.1565 3.49659 18.066 3.50098 17.9756C3.50432 17.9078 3.52125 17.8418 3.55078 17.7812L3.58398 17.7227L5.5 14.8486V10.001C5.50003 7.0083 7.52418 4.48635 10.2783 3.73242L10.5166 3.66699L10.6094 3.4375C10.7214 3.16062 10.9134 2.92285 11.1611 2.75586C11.4089 2.58886 11.7012 2.5 12 2.5ZM10.1143 19.166C10.252 19.5562 10.5079 19.8948 10.8457 20.1338C11.1834 20.3726 11.5874 20.501 12.001 20.501C12.4144 20.5009 12.8177 20.3725 13.1553 20.1338C13.4931 19.8948 13.749 19.5562 13.8867 19.166L14.1221 18.5H9.87891L10.1143 19.166ZM12 4.50195C10.5414 4.50195 9.14275 5.08106 8.11133 6.1123C7.0799 7.14364 6.50002 8.54243 6.5 10.001V15.001C6.49995 15.0996 6.47074 15.1963 6.41602 15.2783L5.45312 16.7227L4.93457 17.5H19.0645L18.5459 16.7227L17.583 15.2783C17.5286 15.1962 17.4998 15.0995 17.5 15.001V10.001C17.5 8.54243 16.9201 7.14364 15.8887 6.1123C14.8573 5.08106 13.4586 4.50195 12 4.50195Z" fill="currentColor" stroke="currentColor"/>
                         </svg>
                     </div>
+                    <span class="nav-label" data-i18n="nav_notifications">Сповіщення</span>
                     <span id="nav-badge" class="badge"></span>
                 </div>
             </a>
@@ -186,76 +194,82 @@
                 <div class="nav-icon-wrapper">
                     <div class="nav-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M14.0156 2.5L14.3242 5.25586L14.3564 5.54492L14.624 5.65918C14.7892 5.73015 14.9437 5.81559 15.0889 5.91406C15.2485 6.02239 15.4052 6.13845 15.5576 6.2627L15.8008 6.46094L16.0859 6.32812L18.3145 5.28223L20.3711 9.25098L18.3711 10.9434L18.1631 11.1191L18.1982 11.3887C18.2107 11.4859 18.2168 11.5774 18.2168 11.6631V12.3369C18.2168 12.3995 18.208 12.4704 18.1875 12.5508L18.1094 12.8545L18.3486 13.0566L20.3496 14.749L18.293 18.7168L16.0869 17.6729L15.8027 17.5381L15.5576 17.7373C15.4073 17.8594 15.2494 17.9739 15.085 18.0811C14.9243 18.1857 14.7662 18.2742 14.6104 18.3467L14.3555 18.4648L14.3242 18.7441L14.0156 21.5H9.98438L9.67578 18.7441L9.64355 18.4551L9.37598 18.3408L9.13672 18.2236C9.05944 18.1813 8.98427 18.136 8.91211 18.0869C8.75244 17.9782 8.59568 17.8612 8.44141 17.7363L8.19824 17.5391L7.91406 17.6719L5.68457 18.7168L3.62793 14.748L5.62891 13.0566L5.83691 12.8809L5.80176 12.6113C5.78931 12.514 5.7832 12.4228 5.7832 12.3379V11.6631C5.7832 11.5774 5.78933 11.4859 5.80176 11.3887L5.83691 11.1191L5.62891 10.9434L3.62793 9.25098L5.68457 5.28223L7.91406 6.32812L8.19824 6.46094L8.44238 6.2627C8.59274 6.14061 8.75055 6.02609 8.91504 5.91895C9.07573 5.81429 9.23383 5.72584 9.38965 5.65332L9.64453 5.53516L9.67578 5.25586L9.98438 2.5H14.0156ZM10.6299 3.94141L10.3545 6.27441C9.96528 6.41337 9.59738 6.59393 9.25293 6.81934C8.92175 7.03608 8.61273 7.28689 8.32617 7.57031L6.43359 6.69629L5.99805 6.49512L5.7793 6.92188L4.90625 8.62109L4.72266 8.97852L5.03125 9.23438L6.71191 10.6309C6.67317 10.8002 6.6434 10.9702 6.62305 11.1406C6.59058 11.4126 6.57422 11.6993 6.57422 12C6.57422 12.2852 6.59074 12.5633 6.62305 12.834C6.64347 13.0051 6.67395 13.1757 6.71289 13.3457L5.02832 14.7676L4.72461 15.0244L4.90625 15.3789L5.7793 17.0781L6 17.5088L6.4375 17.3018L8.32031 16.4092C8.6077 16.7046 8.91821 16.9629 9.25293 17.1816C9.5968 17.4064 9.96378 17.5862 10.3516 17.7246L10.6074 20.0547L10.6562 20.5H13.3174L13.3701 20.0586L13.6455 17.7246C14.0345 17.5859 14.4024 17.4063 14.7471 17.1816C15.0792 16.9651 15.3875 16.7132 15.6738 16.4287L17.5664 17.3037L18.002 17.5049L18.2207 17.0781L19.0938 15.3789L19.2754 15.0244L18.9717 14.7676L17.2891 13.3477C17.327 13.1841 17.3571 13.017 17.377 12.8457C17.4091 12.5681 17.4258 12.286 17.4258 12C17.4258 11.714 17.4091 11.4323 17.377 11.1553C17.357 10.9836 17.3272 10.8157 17.2891 10.6514L18.9717 9.23242L19.2754 8.97559L19.0938 8.62109L18.2207 6.92188L18 6.49121L17.5625 6.69824L15.6787 7.58984C15.3918 7.29501 15.0819 7.03734 14.748 6.81934C14.4043 6.59497 14.0369 6.41448 13.6484 6.27539L13.3926 3.94531L13.3438 3.5H10.6826L10.6299 3.94141ZM12.0449 9C12.759 9.00004 13.3652 9.27396 13.8887 9.8584C14.4138 10.4448 14.6787 11.1492 14.6787 12C14.6787 12.8508 14.4138 13.5552 13.8887 14.1416C13.3652 14.726 12.759 15 12.0449 15C11.3133 15 10.7055 14.7239 10.1924 14.1436C9.67415 13.5574 9.41075 12.8526 9.41016 12C9.40963 11.1476 9.6727 10.4425 10.1914 9.85645C10.7052 9.27598 11.3134 9 12.0449 9Z" fill="#D4A373" stroke="#D4A373"/>
+                        <path d="M14.0156 2.5L14.3242 5.25586L14.3564 5.54492L14.624 5.65918C14.7892 5.73015 14.9437 5.81559 15.0889 5.91406C15.2485 6.02239 15.4052 6.13845 15.5576 6.2627L15.8008 6.46094L16.0859 6.32812L18.3145 5.28223L20.3711 9.25098L18.3711 10.9434L18.1631 11.1191L18.1982 11.3887C18.2107 11.4859 18.2168 11.5774 18.2168 11.6631V12.3369C18.2168 12.3995 18.208 12.4704 18.1875 12.5508L18.1094 12.8545L18.3486 13.0566L20.3496 14.749L18.293 18.7168L16.0869 17.6729L15.8027 17.5381L15.5576 17.7373C15.4073 17.8594 15.2494 17.9739 15.085 18.0811C14.9243 18.1857 14.7662 18.2742 14.6104 18.3467L14.3555 18.4648L14.3242 18.7441L14.0156 21.5H9.98438L9.67578 18.7441L9.64355 18.4551L9.37598 18.3408L9.13672 18.2236C9.05944 18.1813 8.98427 18.136 8.91211 18.0869C8.75244 17.9782 8.59568 17.8612 8.44141 17.7363L8.19824 17.5391L7.91406 17.6719L5.68457 18.7168L3.62793 14.748L5.62891 13.0566L5.83691 12.8809L5.80176 12.6113C5.78931 12.514 5.7832 12.4228 5.7832 12.3379V11.6631C5.7832 11.5774 5.78933 11.4859 5.80176 11.3887L5.83691 11.1191L5.62891 10.9434L3.62793 9.25098L5.68457 5.28223L7.91406 6.32812L8.19824 6.46094L8.44238 6.2627C8.59274 6.14061 8.75055 6.02609 8.91504 5.91895C9.07573 5.81429 9.23383 5.72584 9.38965 5.65332L9.64453 5.53516L9.67578 5.25586L9.98438 2.5H14.0156ZM10.6299 3.94141L10.3545 6.27441C9.96528 6.41337 9.59738 6.59393 9.25293 6.81934C8.92175 7.03608 8.61273 7.28689 8.32617 7.57031L6.43359 6.69629L5.99805 6.49512L5.7793 6.92188L4.90625 8.62109L4.72266 8.97852L5.03125 9.23438L6.71191 10.6309C6.67317 10.8002 6.6434 10.9702 6.62305 11.1406C6.59058 11.4126 6.57422 11.6993 6.57422 12C6.57422 12.2852 6.59074 12.5633 6.62305 12.834C6.64347 13.0051 6.67395 13.1757 6.71289 13.3457L5.02832 14.7676L4.72461 15.0244L4.90625 15.3789L5.7793 17.0781L6 17.5088L6.4375 17.3018L8.32031 16.4092C8.6077 16.7046 8.91821 16.9629 9.25293 17.1816C9.5968 17.4064 9.96378 17.5862 10.3516 17.7246L10.6074 20.0547L10.6562 20.5H13.3174L13.3701 20.0586L13.6455 17.7246C14.0345 17.5859 14.4024 17.4063 14.7471 17.1816C15.0792 16.9651 15.3875 16.7132 15.6738 16.4287L17.5664 17.3037L18.002 17.5049L18.2207 17.0781L19.0938 15.3789L19.2754 15.0244L18.9717 14.7676L17.2891 13.3477C17.327 13.1841 17.3571 13.017 17.377 12.8457C17.4091 12.5681 17.4258 12.286 17.4258 12C17.4258 11.714 17.4091 11.4323 17.377 11.1553C17.357 10.9836 17.3272 10.8157 17.2891 10.6514L18.9717 9.23242L19.2754 8.97559L19.0938 8.62109L18.2207 6.92188L18 6.49121L17.5625 6.69824L15.6787 7.58984C15.3918 7.29501 15.0819 7.03734 14.748 6.81934C14.4043 6.59497 14.0369 6.41448 13.6484 6.27539L13.3926 3.94531L13.3438 3.5H10.6826L10.6299 3.94141ZM12.0449 9C12.759 9.00004 13.3652 9.27396 13.8887 9.8584C14.4138 10.4448 14.6787 11.1492 14.6787 12C14.6787 12.8508 14.4138 13.5552 13.8887 14.1416C13.3652 14.726 12.759 15 12.0449 15C11.3133 15 10.7055 14.7239 10.1924 14.1436C9.67415 13.5574 9.41075 12.8526 9.41016 12C9.40963 11.1476 9.6727 10.4425 10.1914 9.85645C10.7052 9.27598 11.3134 9 12.0449 9Z" fill="currentColor" stroke="currentColor"/>
                         </svg>
                     </div>
+                    <span class="nav-label" data-i18n="nav_settings">Налаштування</span>
                 </div>
             </a>
         </nav>
     </div>
-
+    
+    <!-- МОДАЛЬНІ ВІКНА -->
     <div id="modal-add-med" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><img src="assets/icons/add.svg" class="inline-icon" alt="+"> Додати препарат</h3>
-                <button class="icon-btn close-modal">✖</button>
+                <h3><img src="assets/icons/add.svg" class="inline-icon" alt="+"> <span data-i18n="mod_add_title">Додати препарат</span></h3>
+                <button class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             <div class="modal-body-scroll">
                 <div class="autocomplete-wrapper">
-                    <input type="text" id="med-name-input" class="med-input" placeholder="Назва препарату..." autocomplete="off">
+                    <input type="text" id="med-name-input" class="med-input" placeholder="Назва препарату..." data-i18n-placeholder="ph_name" autocomplete="off">
                     <div id="autocomplete-list" class="autocomplete-items"></div>
                 </div>
                 <div class="flex-row">
                     <div class="date-input-wrapper" style="flex: 1;">
-                        <label>Дата відкриття:</label>
+                        <label data-i18n="lbl_open">Дата відкриття:</label>
                         <input type="date" id="med-date-input" class="med-input">
                     </div>
                     <div class="date-input-wrapper" style="flex: 1;">
-                        <label>Термін (днів):</label>
+                        <label data-i18n="lbl_term">Термін (днів):</label>
                         <input type="number" id="med-exp-days" class="med-input" value="28" min="1">
                     </div>
                 </div>
                 <div class="date-input-wrapper">
-                    <label>Кількість крапель (доза):</label>
+                    <label data-i18n="lbl_dose">Кількість крапель (доза):</label>
                     <input type="number" id="med-drops-qty" class="med-input" value="1" min="1">
                 </div>
                 
                 <div class="date-input-wrapper">
-                    <label>Режим прийому:</label>
+                    <label data-i18n="lbl_mode">Режим прийому:</label>
                     <select id="med-schedule-type" class="med-input">
-                        <option value="">Не фіксований</option>
-                        <option value="interval">Інтервал (у годинах)</option>
-                        <option value="exact" selected>Конкретний час</option>
+                        <option value="" data-i18n="opt_none">Не фіксований</option>
+                        <option value="interval" data-i18n="opt_int">Інтервал (у годинах)</option>
+                        <option value="exact" selected data-i18n="opt_exact">Конкретний час</option>
                     </select>
                 </div>
                 <div class="autocomplete-wrapper" id="med-schedule-val-wrapper" style="display: none;">
-                    <input type="number" id="med-schedule-val" class="med-input" placeholder="Напр. 4 (кожні 4 години)" min="1">
+                    <input type="number" id="med-schedule-val" class="med-input" placeholder="Напр. 4 (кожні 4 години)" data-i18n-placeholder="ph_int" min="1">
                 </div>
                 <div class="autocomplete-wrapper" id="med-schedule-exact-wrapper" style="display: block;">
                     <div class="flex-row">
                         <input type="time" id="time-input-add" class="med-input" style="margin-bottom: 0;">
-                        <button id="btn-add-time" type="button" class="btn-small">Додати</button>
+                        <button id="btn-add-time" type="button" class="btn-small" data-i18n="btn_add_time">Додати</button>
                     </div>
                     <div id="added-times-list" class="times-list"></div>
                 </div>
                 <div id="med-reminder-toggle-wrapper" class="date-input-wrapper">
-                    <label>Надсилати нагадування перед прийомом:</label>
+                    <label data-i18n="lbl_rem">Надсилати нагадування перед прийомом:</label>
                     <div class="flex-row" style="align-items: center; margin-bottom: 8px;">
                         <label class="switch"><input type="checkbox" id="med-reminder-toggle"><span class="slider"></span></label>
                         <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="med-reminder-text">Вимкнено</span>
                     </div>
                 </div>
                 <div class="date-input-wrapper" id="med-reminder-offset-wrapper" style="display: none;">
-                    <label>Час нагадування про закапування:</label>
+                    <label data-i18n="lbl_rem_time">Час нагадування про закапування:</label>
                     <select id="med-reminder-offset" class="med-input">
-                        <option value="0">Вчасно</option>
-                        <option value="5">За 5 хв</option>
-                        <option value="10">За 10 хв</option>
-                        <option value="15">За 15 хв</option>
+                        <option value="0" data-i18n="opt_0">Вчасно</option>
+                        <option value="5" data-i18n="opt_5">За 5 хв</option>
+                        <option value="10" data-i18n="opt_10">За 10 хв</option>
+                        <option value="15" data-i18n="opt_15">За 15 хв</option>
                     </select>
                 </div>
                 <div class="date-input-wrapper">
-                    <label>Пауза між препаратами:</label>
+                    <label data-i18n="lbl_pause">Пауза між препаратами:</label>
                     <div class="flex-row" style="align-items: center; margin-bottom: 8px;">
                         <label class="switch"><input type="checkbox" id="med-pause-toggle"><span class="slider"></span></label>
                         <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="med-pause-text">Вимкнено</span>
@@ -263,149 +277,162 @@
                 </div>
                 
                 <div class="date-input-wrapper" id="med-pause-duration-wrapper" style="display: none;">
-                    <label>Час паузи:</label>
+                    <label data-i18n="lbl_pause_time">Час паузи:</label>
                     <select id="med-pause-duration" class="med-input">
-                        <option value="5">5 хвилин</option>
-                        <option value="10" selected>10 хвилин</option>
-                        <option value="15">15 хвилин</option>
+                        <option value="5" data-i18n="opt_p5">5 хв</option>
+                        <option value="10" selected data-i18n="opt_p10">10 хв</option>
+                        <option value="15" data-i18n="opt_p15">15 хв</option>
                     </select>
                 </div>
                 
-                <button id="save-med-btn" class="btn-secondary">Зберегти препарат</button>
+                <button id="save-med-btn" class="btn-secondary" data-i18n="btn_save">Зберегти препарат</button>
             </div>
         </div>
     </div>
-
     <div id="modal-edit-med" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="inline-icon" xmlns="http://www.w3.org/2000/svg"><path d="M5 19.7778H6.425L16.2 8.91667L14.775 7.33333L5 18.1944V19.7778ZM3 22V17.2778L16.2 2.63889C16.4 2.43519 16.621 2.27778 16.863 2.16667C17.105 2.05556 17.359 2 17.625 2C17.891 2 18.1493 2.05556 18.4 2.16667C18.6507 2.27778 18.8673 2.44444 19.05 2.66667L20.425 4.22222C20.625 4.42593 20.771 4.66667 20.863 4.94444C20.955 5.22222 21.0007 5.5 21 5.77778C21 6.07407 20.9543 6.35667 20.863 6.62556C20.7717 6.89444 20.6257 7.13963 20.425 7.36111L7.25 22H3ZM15.475 8.13889L14.775 7.33333L16.2 8.91667L15.475 8.13889Z" fill="#D4A373"/></svg> Редагувати препарат</h3>
-                <button class="icon-btn close-modal">✖</button>
+                <h3><svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="inline-icon" xmlns="http://www.w3.org/2000/svg"><path d="M5 19.7778H6.425L16.2 8.91667L14.775 7.33333L5 18.1944V19.7778ZM3 22V17.2778L16.2 2.63889C16.4 2.43519 16.621 2.27778 16.863 2.16667C17.105 2.05556 17.359 2 17.625 2C17.891 2 18.1493 2.05556 18.4 2.16667C18.6507 2.27778 18.8673 2.44444 19.05 2.66667L20.425 4.22222C20.625 4.42593 20.771 4.66667 20.863 4.94444C20.955 5.22222 21.0007 5.5 21 5.77778C21 6.07407 20.9543 6.35667 20.863 6.62556C20.7717 6.89444 20.6257 7.13963 20.425 7.36111L7.25 22H3ZM15.475 8.13889L14.775 7.33333L16.2 8.91667L15.475 8.13889Z" fill="var(--accent-color)"/></svg> <span data-i18n="mod_edit_title">Редагувати препарат</span></h3>
+                <button class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             <div class="modal-body-scroll">
                 <input type="hidden" id="edit-med-id">
                 <h4 id="edit-med-name-display" style="color: var(--accent-color); margin-bottom: 12px; text-align: center;"></h4>
                 
                 <div class="date-input-wrapper">
-                    <label>Кількість крапель (доза):</label>
+                    <label data-i18n="lbl_dose">Кількість крапель (доза):</label>
                     <input type="number" id="edit-med-drops-qty" class="med-input" min="1">
                 </div>
-
                 <div class="date-input-wrapper">
-                    <label>Режим прийому:</label>
+                    <label data-i18n="lbl_mode">Режим прийому:</label>
                     <select id="edit-med-schedule-type" class="med-input">
-                        <option value="">Не фіксований</option>
-                        <option value="interval">Інтервал (у годинах)</option>
-                        <option value="exact">Конкретний час</option>
+                        <option value="" data-i18n="opt_none">Не фіксований</option>
+                        <option value="interval" data-i18n="opt_int">Інтервал (у годинах)</option>
+                        <option value="exact" data-i18n="opt_exact">Конкретний час</option>
                     </select>
                 </div>
                 <div class="autocomplete-wrapper" id="edit-med-schedule-val-wrapper" style="display: none;">
-                    <input type="number" id="edit-med-schedule-val" class="med-input" placeholder="Напр. 4 (кожні 4 години)" min="1">
+                    <input type="number" id="edit-med-schedule-val" class="med-input" placeholder="Напр. 4 (кожні 4 години)" data-i18n-placeholder="ph_int" min="1">
                 </div>
                 <div class="autocomplete-wrapper" id="edit-med-schedule-exact-wrapper" style="display: none;">
                     <div class="flex-row">
                         <input type="time" id="edit-time-input-add" class="med-input" style="margin-bottom: 0;">
-                        <button id="edit-btn-add-time" type="button" class="btn-small">Додати</button>
+                        <button id="edit-btn-add-time" type="button" class="btn-small" data-i18n="btn_add_time">Додати</button>
                     </div>
                     <div id="edit-added-times-list" class="times-list"></div>
                 </div>
                 
                 <div id="edit-med-reminder-toggle-wrapper" class="date-input-wrapper">
-                    <label>Надсилати нагадування перед прийомом:</label>
+                    <label data-i18n="lbl_rem">Надсилати нагадування перед прийомом:</label>
                     <div class="flex-row" style="align-items: center; margin-bottom: 8px;">
                         <label class="switch"><input type="checkbox" id="edit-med-reminder-toggle"><span class="slider"></span></label>
                         <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="edit-med-reminder-text"></span>
                     </div>
                 </div>
                 <div class="date-input-wrapper" id="edit-med-reminder-offset-wrapper">
-                    <label>Час нагадування про закапування:</label>
+                    <label data-i18n="lbl_rem_time">Час нагадування про закапування:</label>
                     <select id="edit-med-reminder-offset" class="med-input">
-                        <option value="0">Вчасно</option>
-                        <option value="5">За 5 хв</option>
-                        <option value="10">За 10 хв</option>
-                        <option value="15">За 15 хв</option>
+                        <option value="0" data-i18n="opt_0">Вчасно</option>
+                        <option value="5" data-i18n="opt_5">За 5 хв</option>
+                        <option value="10" data-i18n="opt_10">За 10 хв</option>
+                        <option value="15" data-i18n="opt_15">За 15 хв</option>
                     </select>
                 </div>
                 <div class="date-input-wrapper">
-                    <label>Пауза між препаратами:</label>
+                    <label data-i18n="lbl_pause">Пауза між препаратами:</label>
                     <div class="flex-row" style="align-items: center; margin-bottom: 8px;">
                         <label class="switch"><input type="checkbox" id="edit-med-pause-toggle"><span class="slider"></span></label>
                         <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="edit-med-pause-text"></span>
                     </div>
                 </div>
-
                 <div class="date-input-wrapper" id="edit-med-pause-duration-wrapper">
-                    <label>Час паузи:</label>
+                    <label data-i18n="lbl_pause_time">Час паузи:</label>
                     <select id="edit-med-pause-duration" class="med-input">
-                        <option value="5">5 хвилин</option>
-                        <option value="10">10 хвилин</option>
-                        <option value="15">15 хвилин</option>
+                        <option value="5" data-i18n="opt_p5">5 хв</option>
+                        <option value="10" data-i18n="opt_p10">10 хв</option>
+                        <option value="15" data-i18n="opt_p15">15 хв</option>
                     </select>
                 </div>
                 
-                <button id="save-edit-med-btn" class="btn-secondary">Зберегти зміни</button>
+                <button id="save-edit-med-btn" class="btn-secondary" data-i18n="btn_save_edit">Зберегти зміни</button>
             </div>
         </div>
     </div>
-
     <div id="modal-manage-notifs" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Керування сповіщеннями</h3>
-                <button class="icon-btn close-modal">✖</button>
+                <h3 data-i18n="mod_notif_title">Керування сповіщеннями</h3>
+                <button class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             <div class="date-input-wrapper" style="margin-bottom: 16px;">
-                <label style="margin-bottom: 12px;">Звук сповіщень:</label>
+                <label style="margin-bottom: 12px;" data-i18n="lbl_push">Push-сповіщення:</label>
                 <div class="flex-row" style="align-items: center; margin-bottom: 0;">
                     <label class="switch"><input type="checkbox" id="notif-sound-toggle" checked><span class="slider"></span></label>
                     <span style="margin-left: 10px; font-size: 14px; font-weight: 600;" id="notif-sound-text">Увімкнено</span>
                 </div>
             </div>
-            <button id="btn-modal-delete-all" class="btn-secondary" style="background-color: var(--error-border); color: #fff; margin-top: 0;">Очистити історію</button>
+            <button id="btn-modal-delete-all" class="btn-secondary" style="background-color: var(--error-border); color: #fff; margin-top: 0;" data-i18n="btn_clear">Очистити історію</button>
         </div>
     </div>
-
     <div id="modal-doctor" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><img src="assets/icons/doctor.svg" class="inline-icon" alt="🩺"> Візит до лікаря</h3>
-                <button class="icon-btn close-modal">✖</button>
+                <h3><img src="assets/icons/doctor.svg" class="inline-icon" alt="🩺"> <span data-i18n="mod_doc_title">Візит до лікаря</span></h3>
+                <button class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             <div class="flex-row">
                 <input type="date" id="doctor-date-input" class="med-input" style="margin-bottom: 0; flex: 1;">
                 <input type="time" id="doctor-time-input" class="med-input" style="margin-bottom: 0; flex: 1;">
-                <button id="btn-add-doctor" type="button" class="btn-small">Додати</button>
+                <button id="btn-add-doctor" type="button" class="btn-small" data-i18n="btn_add_time">Додати</button>
             </div>
             <div id="doctor-visits-list" class="times-list" style="margin-top: 12px;"></div>
         </div>
     </div>
-
     <div id="modal-data" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><img src="assets/icons/data.svg" class="inline-icon" alt="💾"> Управління даними</h3>
-                <button class="icon-btn close-modal">✖</button>
+                <h3><img src="assets/icons/data.svg" class="inline-icon" alt="💾"> <span data-i18n="mod_data_title">Дані</span></h3>
+                <button class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
-            <button class="btn-secondary" id="btn-export" style="margin-bottom: 12px;"><img src="assets/icons/export.svg" class="inline-icon" alt="⬆️"> Експорт даних</button>
-            <button class="btn-secondary" id="btn-import" onclick="document.getElementById('file-import').click()"><img src="assets/icons/import.svg" class="inline-icon" alt="⬇️"> Імпорт даних</button>
+            <button class="btn-secondary" id="btn-export" style="margin-bottom: 12px;"><img src="assets/icons/export.svg" class="inline-icon" alt="⬆️"> <span data-i18n="btn_exp">Експорт (резервна копія)</span></button>
+            <button class="btn-secondary" id="btn-import" onclick="document.getElementById('file-import').click()"><img src="assets/icons/import.svg" class="inline-icon" alt="⬇️"> <span data-i18n="btn_imp">Імпорт (файл json)</span></button>
             <input type="file" id="file-import" accept=".json" style="display: none;">
         </div>
     </div>
-
     <div id="modal-feedback" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><img src="assets/icons/feedback.svg" class="inline-icon" alt="📝"> Відгук</h3>
-                <button class="icon-btn close-modal">✖</button>
+                <h3><img src="assets/icons/feedback.svg" class="inline-icon" alt="📝"> <span data-i18n="mod_fb_title">Відгук</span></h3>
+                <button class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             <div class="modal-body-scroll">
                 <form id="feedback-form" action="https://formspree.io/f/mjgqbblb" method="POST">
                     <div class="date-input-wrapper">
-                        <label>Ваш Email:</label>
+                        <label data-i18n="lbl_email">Ваш Email:</label>
                         <input type="email" name="email" class="med-input" required placeholder="email@example.com">
                     </div>
                     <div class="date-input-wrapper">
-                        <label>Оцінка додатка:</label>
+                        <label data-i18n="lbl_rate">Оцінка додатка:</label>
                         <div class="star-rating">
                             <input type="radio" id="star5" name="rating" value="5" required /><label for="star5" title="5">★</label>
                             <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4">★</label>
@@ -415,61 +442,111 @@
                         </div>
                     </div>
                     <div class="date-input-wrapper">
-                        <label>Повідомлення (необов'язково):</label>
+                        <label data-i18n="lbl_msg">Повідомлення (необов'язково):</label>
                         <textarea name="message" class="med-input" rows="3" style="resize: vertical;"></textarea>
                     </div>
-                    <button type="submit" class="btn-secondary">Відправити</button>
+                    <button type="submit" class="btn-secondary" data-i18n="btn_send">Відправити</button>
                 </form>
             </div>
         </div>
     </div>
-
     <div id="modal-telegram" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><img src="assets/icons/telegram.svg" class="inline-icon" alt="TG"> Telegram</h3>
-                <button class="icon-btn close-modal">✖</button>
+                <h3><img src="assets/icons/telegram.svg" class="inline-icon" alt="TG"> <span data-i18n="mod_tg_title">Telegram</span></h3>
+                <button class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px; text-align: center;">
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px; text-align: center;" data-i18n="tg_desc">
                 Отримуйте всі сповіщення безпосередньо у ваш Telegram. Це гарантує максимальну надійність та вчасну доставку повідомлень.
             </p>
-            <button id="btn-generate-tg" class="btn-secondary">Згенерувати код підключення</button>
+            <button id="btn-generate-tg" class="btn-secondary" data-i18n="btn_gen">Згенерувати код підключення</button>
             
             <div id="tg-code-display" style="display: none; margin-top: 20px; text-align: center; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; border: 1px solid var(--primary-color);">
-                <span style="font-size: 13px; color: var(--text-muted);">Ваш код підключення:</span><br>
+                <span style="font-size: 13px; color: var(--text-muted);" data-i18n="tg_your_code">Ваш код підключення:</span><br>
                 <span id="tg-code-value" style="font-size: 32px; font-weight: 700; color: var(--text-main); letter-spacing: 4px; display: block; margin: 10px 0;"></span>
-                <span style="font-size: 13px; color: var(--text-muted);">Надішліть цей код боту:</span><br>
-                <a id="tg-bot-link" href="#" target="_blank" style="display: inline-block; margin-top: 8px; color: var(--primary-color); font-weight: 600; text-decoration: none;">Відкрити Telegram</a>
+                <span style="font-size: 13px; color: var(--text-muted);" data-i18n="tg_send">Надішліть цей код боту:</span><br>
+                <a id="tg-bot-link" href="#" target="_blank" style="display: inline-block; margin-top: 8px; color: var(--primary-color); font-weight: 600; text-decoration: none;" data-i18n="tg_open">Відкрити Telegram</a>
             </div>
         </div>
     </div>
-
     <div id="day-modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modal-date-title">Деталі</h3>
-                <button id="modal-close" class="icon-btn close-modal">✖</button>
+                <button id="modal-close" class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             <div id="modal-body" class="modal-body-scroll"></div>
         </div>
     </div>
-
     <div id="drop-modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Що закапуємо?</h3>
-                <button id="drop-modal-close" class="icon-btn close-modal">✖</button>
+                <h3 data-i18n="mod_drop_title">Що закапуємо?</h3>
+                <button id="drop-modal-close" class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
             <div id="drop-modal-list" class="drop-med-list"></div>
             <div id="drop-modal-success" style="display: none; text-align: center; padding: 30px 10px;">
                 <div class="success-checkmark">✅</div>
-                <h3 style="color: var(--primary-color); margin-top: 10px;">Успішно!</h3>
+                <h3 style="color: var(--primary-color); margin-top: 10px;" data-i18n="mod_success">Успішно!</h3>
             </div>
         </div>
     </div>
-
+    <div id="modal-about" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><img src="assets/icons/info.svg" class="inline-icon" alt="ℹ️"> <span data-i18n="about_t1_modal">Інфо</span></h3>
+                <button class="icon-btn close-modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20.585 4.77734L14.0703 11.293C13.6801 11.6834 13.6801 12.3166 14.0703 12.707L20.585 19.2217L19.2217 20.585L12.707 14.0703C12.341 13.7045 11.7618 13.6818 11.3691 14.002L11.293 14.0703L4.77734 20.585L3.41406 19.2217L9.92969 12.707C10.3199 12.3166 10.3199 11.6834 9.92969 11.293L3.41406 4.77734L4.77734 3.41406L11.293 9.92969C11.6834 10.3199 12.3166 10.3199 12.707 9.92969L19.2217 3.41406L20.585 4.77734Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body-scroll">
+                
+                <div class="about-block">
+                <div class="about-block-header">
+                    <img src="assets/icons/about.svg" class="inline-icon" alt="Info">
+                    <h4 data-i18n="about_t1">Про Krapliks</h4>
+                </div>
+                <p data-i18n="about_d1">Krapliks — інструмент для контролю і систематичного догляду за здоров'ям очей. Застосунок дозволяє зручно відстежувати графік закапувань, зберігати статистику та вчасно планувати візити до офтальмолога.</p>
+            </div>
+            
+            <div class="about-block">
+                <div class="about-block-header">
+                    <img src="assets/icons/contacts.svg" class="inline-icon" alt="Contacts">
+                    <h4 data-i18n="about_t2">Контакти</h4>
+                </div>
+                <p data-i18n="about_d2">Маєте запитання, цікаву пропозицію або помітили помилку? Звертайтеся за електронною адресою: </p>
+                <a href="mailto:yaryna.vdovyn@gmail.com" style="color: var(--primary-color); font-weight: 500; text-decoration: none; display: inline-block; margin-top: 4px;">yaryna.vdovyn@gmail.com</a>
+            </div>
+            <div class="about-block">
+                <div class="about-block-header">
+                    <img src="assets/icons/sponsorship.svg" class="inline-icon" alt="Donate">
+                    <h4 data-i18n="about_t3">Підтримати проект</h4>
+                </div>
+                <p data-i18n="about_d3">Додаток є повністю безкоштовним. Підтримати його подальший розвиток, покриття витрат на сервер і розширення функціоналу можна за допомогою добровільного внеску.</p>
+                <a href="https://send.monobank.ua/jar/AbxnaJKbQL" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="display: flex; justify-content: center; align-items: center; text-decoration: none; margin-top: 12px; padding: 12px;" data-i18n="btn_donate">Задонатити</a>
+            </div>
+            </div>
+        </div>
+    </div>
     <div id="print-area"></div>
-
+    
+    <!-- Скрипт-поліфіл для підтримки Drag and Drop на старих сенсорних екранах -->
+    <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.min.js"></script>
+    
     <script src="script.js"></script>
 </body>
 </html>

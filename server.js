@@ -62,6 +62,7 @@ const pushJobSchema = new mongoose.Schema({
     queue: { type: Array, default: [] },
     soundEnabled: { type: Boolean, default: true },
     history: { type: Array, default: [] },
+    language: { type: String, default: 'uk' },
     telegramChatId: { type: String, default: null }, 
     telegramSyncCode: { type: String, default: null } 
 });
@@ -75,23 +76,80 @@ if (tgToken) {
     bot = new TelegramBot(tgToken, { polling: true });
     console.log('🤖 Telegram Бот успішно запущено!');
 
+    // Словник бота
+    const botI18n = {
+        uk: {
+            start: '👋 Привіт! Відправте мені 6-значний код підключення з додатку Krapliks.',
+            stop_ok: '🔕 <b>Сповіщення відключено.</b>\n\nВи більше не отримуватимете повідомлення від цього бота. Щоб увімкнути їх знову, згенеруйте новий код у налаштуваннях додатку.',
+            stop_err: 'Ви і так не отримуєте сповіщень. Спочатку підключіть бота через код із додатку.',
+            status_ok: '✅ <b>Підписка активна!</b>\nВи отримуєте сповіщення з Krapliks.',
+            status_err: '❌ <b>Підписка неактивна.</b>\nБот не підключений до вашого профілю. Згенеруйте код у додатку.',
+            code_ok: '✅ <b>Успішно!</b> Тепер нагадування приходитимуть сюди.',
+            code_err: '❌ Неправильний або прострочений код. Згенеруйте новий у додатку або скористайтеся меню команд.'
+        },
+        en: {
+            start: '👋 Hello! Send me the 6-digit connection code from the Krapliks app.',
+            stop_ok: '🔕 <b>Notifications disabled.</b>\n\nYou will no longer receive messages from this bot. To enable them again, generate a new code in the app settings.',
+            stop_err: 'You are not receiving notifications anyway. Connect the bot via the app code first.',
+            status_ok: '✅ <b>Subscription active!</b>\nYou are receiving notifications from Krapliks.',
+            status_err: '❌ <b>Subscription inactive.</b>\nThe bot is not connected to your profile. Generate a code in the app.',
+            code_ok: '✅ <b>Success!</b> Reminders will now be sent here.',
+            code_err: '❌ Invalid or expired code. Generate a new one in the app or use the command menu.'
+        }
+    };
+
     bot.on('message', async (msg) => {
         const chatId = msg.chat.id;
         const text = msg.text ? msg.text.trim() : '';
 
+        // 1. Команда /start (Двомовна)
         if (text === '/start') {
-            return bot.sendMessage(chatId, '👋 Привіт! Відправте мені 6-значний код підключення з додатку Krapliks.');
+            return bot.sendMessage(chatId, `${botI18n.uk.start}\n\n${botI18n.en.start}`);
         }
 
-        const user = await PushJob.findOne({ telegramSyncCode: text });
+        // Шукаємо користувача за ID чату
+        let user = await PushJob.findOne({ telegramChatId: chatId.toString() });
+
+        // 2. Команда /stop (Безпечне глобальне відключення)
+        if (text === '/stop') {
+            if (user) {
+                // ЗАХИСТ 1: Перевіряємо, чи існує мова в словнику, інакше - uk
+                const lang = botI18n[user.language] ? user.language : 'uk';
+                
+                // ЗАХИСТ 2: Відв'язуємо одразу всі пристрої, які дивляться в цей чат
+                await PushJob.updateMany(
+                    { telegramChatId: chatId.toString() },
+                    { $set: { telegramChatId: null } }
+                );
+                
+                return bot.sendMessage(chatId, botI18n[lang].stop_ok, { parse_mode: 'HTML' });
+            } else {
+                return bot.sendMessage(chatId, `${botI18n.uk.stop_err}\n\n${botI18n.en.stop_err}`);
+            }
+        }
+
+        // 3. Команда /status
+        if (text === '/status') {
+            if (user) {
+                const lang = botI18n[user.language] ? user.language : 'uk';
+                return bot.sendMessage(chatId, botI18n[lang].status_ok, { parse_mode: 'HTML' });
+            } else {
+                return bot.sendMessage(chatId, `${botI18n.uk.status_err}\n\n${botI18n.en.status_err}`);
+            }
+        }
+
+        // 4. Перевірка коду
+        const userByCode = await PushJob.findOne({ telegramSyncCode: text });
         
-        if (user) {
-            user.telegramChatId = chatId.toString();
-            user.telegramSyncCode = null; 
-            await user.save();
-            bot.sendMessage(chatId, '✅ <b>Успішно!</b> Тепер нагадування приходитимуть сюди.', { parse_mode: 'HTML' });
+        if (userByCode) {
+            const lang = botI18n[userByCode.language] ? userByCode.language : 'uk';
+            userByCode.telegramChatId = chatId.toString();
+            userByCode.telegramSyncCode = null; 
+            await userByCode.save();
+            bot.sendMessage(chatId, botI18n[lang].code_ok, { parse_mode: 'HTML' });
         } else {
-            bot.sendMessage(chatId, '❌ Неправильний або прострочений код. Згенеруйте новий у додатку.');
+            const lang = (user && botI18n[user.language]) ? user.language : 'uk';
+            bot.sendMessage(chatId, botI18n[lang].code_err);
         }
     });
 }
@@ -120,13 +178,14 @@ function createHistoryItem(title, body, type = 'reminder', timestamp = Date.now(
 // --- МАРШРУТИ API (ТЕПЕР АСИНХРОННІ ДЛЯ РОБОТИ З БД) ---
 app.post('/api/telegram/generate-code', async (req, res) => {
     try {
-        const { userId, subscription } = req.body;
+        const { userId, subscription, language } = req.body; // Додали language сюди
         if (!userId) return res.sendStatus(400);
         const code = Math.floor(100000 + Math.random() * 900000).toString(); 
         let user = await PushJob.findOne({ userId: userId });
         
         if (user) {
             user.telegramSyncCode = code;
+            if (language) user.language = language; // <--- ДОДАЙТЕ ЦЕЙ РЯДОК
             await user.save();
             res.json({ code, botUsername: process.env.TELEGRAM_BOT_USERNAME || 'krapliks_bot' }); 
         } else {
@@ -141,7 +200,7 @@ app.post('/api/subscribe', (req, res) => {
 });
 app.post('/api/sync-pushes', async (req, res) => {
     try {
-        const { userId, subscription, queue, soundEnabled, localHistory } = req.body;
+        const { userId, subscription, queue, soundEnabled, localHistory, language } = req.body;
         if (!userId) return res.sendStatus(400);
         let user = await PushJob.findOne({ userId: userId });
         const existingHistory = user ? user.history : [];
@@ -163,13 +222,14 @@ app.post('/api/sync-pushes', async (req, res) => {
             { 
                 endpoint: subscription ? subscription.endpoint : (user ? user.endpoint : null),
                 subscription: subscription || (user ? user.subscription : null), 
-                queue, 
+                queue: queue,
                 soundEnabled: soundEnabled !== false, 
-                history: mergedHistory 
+                history: mergedHistory,
+                language: language || 'uk' // <--- ДОДАЙТЕ ЦЕЙ РЯДОК
             },
             { upsert: true, returnDocument: 'after' }
         );
-        console.log(`[MongoDB Синхронізація] Оновлено розклад для ${userId}.`);
+        console.log(`[MongoDB Синхронізація] Оновлено розклад для ${userId}. Отримано завдань: ${queue.length}`);
         res.sendStatus(200);
     } catch (err) {
         console.error('Помилка синхронізації з БД:', err);
