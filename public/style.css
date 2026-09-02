@@ -647,6 +647,12 @@ input, select, textarea, .med-input, .modal-input {
         width: calc(50% - 10px); /* Зберігаємо точний розмір, який вона мала б у 2 колонках */
         margin: 0 auto 20px auto; /* Центруємо її ідеально посередині */
     }
+    /* Забороняємо розривати текст порожнього стану на 2 колонки */
+    .medications-vertical-list .empty-state-text {
+        column-span: all; /* Розтягуємо на всю ширину */
+        text-align: center;
+        margin-top: 10px;
+    }
     /* Центруємо заголовок "Мої препарати", якщо у списку менше 2-х карток */
     .medications-list:not(:has(.med-card:nth-child(2))) h2 {
         justify-content: center; 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'krapliks-cache-v60'; // Оновлено
+const CACHE_NAME = 'krapliks-cache-v61'; // Оновлено
 
 // Список всіх файлів та іконок для офлайн-режиму
 const urlsToCache = [
