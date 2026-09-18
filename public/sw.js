@@ -1,4 +1,4 @@
-const CACHE_NAME = 'krapliks-cache-v61'; // Оновлено
+const CACHE_NAME = 'krapliks-cache-v62'; // Оновлено
 
 // Список всіх файлів та іконок для офлайн-режиму
 const urlsToCache = [
@@ -20,6 +20,7 @@ const urlsToCache = [
     '/images/iryfryn.jpg',
     '/images/medetrom.jpg',
     '/images/tobradeks.jpg',
+    '/images/unica.webp',
     '/assets/icons/drops.svg',
     '/assets/icons/hourglass.svg',
     '/assets/icons/search.svg',
@@ -255,12 +256,21 @@ self.addEventListener('message', event => {
             safeShowNotification(data.title || 'Krapliks', options);
         };
         
-        if (supportsTriggers && targetTime > now) {
+        const delay = targetTime - now;
+        const MAX_TIMEOUT = 2147483647; // Максимальний ліміт JavaScript (24.8 днів)
+
+        if (supportsTriggers && delay > 0) {
             options.showTrigger = new TimestampTrigger(targetTime);
             event.waitUntil(self.registration.showNotification(data.title || 'Krapliks', options));
-        } else if (targetTime > now) {
-            const timerId = setTimeout(triggerDisplay, targetTime - now);
+        } else if (delay > 0 && delay <= MAX_TIMEOUT) {
+            // Час в межах ліміту — ставимо локальний резервний таймер (для офлайну)
+            const timerId = setTimeout(triggerDisplay, delay);
             fallbackTimeouts.push(timerId);
+        } else if (delay > MAX_TIMEOUT) {
+            // МАГІЯ: Якщо термін більше 24 днів (наприклад, 28 днів, пів року), 
+            // локальний Service Worker просто ігнорує його, щоб не зламатися.
+            // Це пуш гарантовано надішле ваш сервер через cron-таймер!
+            console.log(`[SW] Пуш заплановано на термін > 24 днів. Делегуємо серверу.`);
         } else {
             triggerDisplay();
         }

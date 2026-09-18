@@ -277,7 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Флоксал", image: "images/floksal.jpg" },
         { name: "Ірифрин", image: "images/iryfryn.jpg" },
         { name: "Медетром", image: "images/medetrom.jpg" },
-        { name: "Тобрадекс", image: "images/tobradeks.jpg" }
+        { name: "Тобрадекс", image: "images/tobradeks.jpg" },
+        { name: "Unica", image: "images/unica.webp" }
     ];
     const DEFAULT_ICON = "images/default.png"; 
     
@@ -763,7 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const nextDoseText = calculateNextDose(med.id, med.scheduleType, med.scheduleValue, med.scheduleTimes);
             const nextDoseHtml = nextDoseText ? `<div class="next-dose-box">${i18n[currentLang].next_dose}<br>${nextDoseText}</div>` : '';
             let tabletkiBtnHtml = '';
-            if (diffDays <= 3) {
+            if (diffDays <= 5) {
                 let searchUrl = `https://tabletki.ua/uk/${encodeURIComponent(med.name)}`;
                 tabletkiBtnHtml = `<a href="${searchUrl}" target="_blank" class="btn-tabletki"><img src="assets/icons/search.svg" class="inline-icon"> ${i18n[currentLang].find_tab}</a>`;
             }
