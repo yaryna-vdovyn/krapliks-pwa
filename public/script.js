@@ -1065,7 +1065,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lastDrop = todayDrops[todayDrops.length - 1];
         lastActionText.innerText = `${i18n[currentLang].last_time} ${lastDrop.time} (${lastDrop.medName}, ${translateEyeValue(lastDrop.eye)})`;
         const stats = {};
-        todayDrops.forEach(d => { stats[d.medName] = (stats[d.medName] || 0) + 1; });
+        todayDrops.forEach(d => { stats[d.medName] = (stats[d.medName] || 0) + (parseInt(d.dropsQty) || 1); });
         let html = ``;
         for (const [name, count] of Object.entries(stats)) html += `<span class="stat-pill">${name}: ${count} ${i18n[currentLang].dr_short}</span>`;
         todayStatsContainer.innerHTML = html;
