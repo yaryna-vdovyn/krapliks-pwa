@@ -509,21 +509,44 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = document.createElement('a'); a.href = url; a.download = `drops-backup-${getLocalYMD()}.json`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     });
-    document.getElementById('file-import')?.addEventListener('change', (e) => {
+    document.getElementById('file-import')?.addEventListener('change', async (e) => { // Зробили функцію асинхронною
         const file = e.target.files[0]; if (!file) return;
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => { // Зробили onload асинхронним
             try {
                 const data = JSON.parse(event.target.result);
+                
+                // --- МАГІЯ ЗНИЩЕННЯ ПРИВИДІВ ---
+                // Перед тим як прийняти чужий ID з файлу, ми очищаємо стару базу таймерів на сервері
+                const oldUserId = localStorage.getItem('krapliks_userId');
+                if (oldUserId && data.krapliks_userId && oldUserId !== data.krapliks_userId) {
+                    try {
+                        const reg = await navigator.serviceWorker.ready;
+                        const sub = await reg.pushManager.getSubscription();
+                        // Відправляємо порожню чергу (queue: []), щоб сервер скасував усі старі таймери ноутбука
+                        await fetch('/api/sync-pushes', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: oldUserId, subscription: sub, queue: [] })
+                        });
+                        console.log('Стару базу таймерів успішно очищено на сервері.');
+                    } catch(err) { console.log('Не вдалося очистити стару базу', err); }
+                }
+                // -------------------------------
+
                 if (data.krapliks_userId) localStorage.setItem('krapliks_userId', data.krapliks_userId);
-                // Також варто оновити змінну в пам'яті:
                 if (data.krapliks_userId) userId = data.krapliks_userId;
                 if (data.appMedications) localStorage.setItem('appMedications', JSON.stringify(data.appMedications));
                 if (data.appDropHistory) localStorage.setItem('appDropHistory', JSON.stringify(data.appDropHistory));
                 if (data.appDoctorVisits) localStorage.setItem('appDoctorVisits', JSON.stringify(data.appDoctorVisits));
                 if (data.appNotifications) localStorage.setItem('appNotifications', JSON.stringify(data.appNotifications));
                 if (data.appSoundEnabled) localStorage.setItem('appSoundEnabled', data.appSoundEnabled);
-                alert(i18n[currentLang].alert_imp_ok); syncPushesWithServer(); location.reload(); 
+                
+                alert(i18n[currentLang].alert_imp_ok); 
+                syncPushesWithServer(); 
+                
+                // Даємо серверу пів секунди на обробку перед перезавантаженням сторінки
+                setTimeout(() => location.reload(), 500); 
             } catch (err) { alert(i18n[currentLang].alert_imp_err); }
         };
         reader.readAsText(file);
