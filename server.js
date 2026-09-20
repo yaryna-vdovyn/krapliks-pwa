@@ -156,12 +156,14 @@ if (tgToken) {
 
 // --- ДОПОМІЖНА ФУНКЦІЯ ДЛЯ СТВОРЕННЯ ОБ'ЄКТА ІСТОРІЇ ---
 function createHistoryItem(title, body, type = 'reminder', timestamp = Date.now()) {
-    let titleKey = 'notif_type_rem';
+    let titleKey = 'notif_rem';
     
     if (type === 'doctor') {
-        titleKey = 'notif_type_doc';
+        titleKey = 'notif_doc';
     } else if (type === 'expiry') {
-        titleKey = 'notif_type_exp';
+        titleKey = 'notif_exp';
+    } else if (type === 'pause') {
+        titleKey = 'notif_pause';
     }
     
     return {
@@ -169,6 +171,7 @@ function createHistoryItem(title, body, type = 'reminder', timestamp = Date.now(
         key: `server_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         type: type,
         titleKey: titleKey,
+        titleText: title, // ДОДАНО: Тепер сервер теж запам'ятовує готовий текст!
         text: body,
         isRead: false,
         timestamp: timestamp
